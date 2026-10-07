@@ -1,14 +1,22 @@
 {
   "expo": {
-    "name": "outpost",
-    "slug": "outpost",
+    "name": "MultiPostly",
+    "slug": "multipostly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "outpost",
+    "scheme": ["outpost", "multipostly"],
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.chhunsour.outpost",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "appleTeamId": "AX5SUA48CM",
+      "buildNumber": "2",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +28,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -28,11 +36,24 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0B0B0D",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 76,
+          "dark": {
+            "backgroundColor": "#0B0B0D"
+          }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MultiPostly needs access to your photos to attach them to posts.",
+          "cameraPermission": "MultiPostly needs camera access to capture photos and videos for posts."
+        }
+      ],
+      "expo-secure-store",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

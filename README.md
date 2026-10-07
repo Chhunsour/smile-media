@@ -1,56 +1,74 @@
-# Welcome to your Expo app 👋
+# MultiPostly
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Write once, publish everywhere. MultiPostly is a mobile app (Expo, React Native) for composing a post and publishing or scheduling it to **Facebook Pages, Instagram, TikTok, YouTube, X and Telegram**, with per-platform previews, captions and options.
 
-## Get started
+## Modes
 
-1. Install dependencies
+| Mode | `EXPO_PUBLIC_APP_MODE` | What runs |
+| --- | --- | --- |
+| Demo | `demo` (default) | Everything on the device with sample data. No backend, nothing is posted. |
+| Live | `live` | Supabase: auth, Postgres, storage, and the `api` Edge Function that talks to the platforms. |
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick start (demo)
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Live setup (Supabase)
 
-### Other setup steps
+1. Create a Supabase project, then link it and push the schema:
+   ```bash
+   supabase link --project-ref <ref>
+   supabase db push
+   ```
+2. Fill `supabase/functions/.env` from `supabase/functions/.env.example` and deploy:
+   ```bash
+   supabase secrets set --env-file supabase/functions/.env
+   supabase functions deploy api --no-verify-jwt
+   ```
+   `--no-verify-jwt` is required: the function checks the user's session itself, and OAuth callbacks arrive without one.
+3. Turn on the scheduler (runs every minute through `pg_cron`). Use the same value as `CRON_SECRET`:
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co/functions/v1/api', 'api_url');
+   select vault.create_secret('<CRON_SECRET>', 'cron_secret');
+   ```
+4. In `.env`, set `EXPO_PUBLIC_APP_MODE=live`, `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (the publishable key).
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Connecting platforms
 
-## Learn more
+Every platform needs a developer app that you own. Set its OAuth redirect URI to
+`https://<ref>.supabase.co/functions/v1/api/callback`.
 
-To learn more about developing your project with Expo, look at the following resources:
+| Platform | Where | Notes |
+| --- | --- | --- |
+| Facebook + Instagram | developers.facebook.com | One Meta app with Facebook Login. Instagram must be a professional account linked to a Page. Real users need App Review. |
+| TikTok | developers.tiktok.com | Content Posting API. Unaudited apps can only post privately (`SELF_ONLY`), and URL pulls need a verified domain. |
+| YouTube | console.cloud.google.com | Enable YouTube Data API v3 and create a "Web application" OAuth client. |
+| X | developer.x.com | OAuth 2.0 with read and write permissions. |
+| Telegram | @BotFather | Create a bot and make it an admin of your channel with "Post messages". |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Architecture
 
-## Join the community
+```
+src/app          screens (Expo Router)
+src/lib/store    app state (Zustand); talks only to services
+src/services     provider interfaces + demo and Supabase implementations
+src/platforms    one adapter per network: limits, options, validation, preview, API payload
+src/models       the data contract
+supabase/        schema migrations + the `api` Edge Function (OAuth, publishing, AI, scheduler)
+```
 
-Join our community of developers creating universal apps.
+To use a different backend, implement the interfaces in `src/services/types.ts` and wire them up in `src/config/providers.ts`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Security
+
+- Platform tokens and app secrets live only in the Edge Function and the `social_tokens` table. Row Level Security leaves that table with no client policies, so the app can never read it.
+- The app only bundles public values (`EXPO_PUBLIC_*`). `.env` files are gitignored.
+- Each user can read and write only their own rows and their own media folder.
+
+## License
+
+MIT
