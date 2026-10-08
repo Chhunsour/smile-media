@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Eyebrow, JsonLd, Phone, SmartLink } from "@/components/ui";
@@ -24,20 +25,21 @@ export default function Download() {
     <div>
       <nav aria-label="Breadcrumb" className="mb-7 flex gap-2 text-[13px] text-ink-3"><Link prefetch={false} href="/" className="hover:text-ink">Home</Link><span aria-hidden="true">/</span><span className="text-ink-2">Get the app</span></nav>
       <Eyebrow>iOS & Android</Eyebrow>
-      <h1 className="anim-lift text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1] tracking-[-.045em]">Your studio,<br />in your pocket.</h1>
+      <h1 className="anim-lift display text-[clamp(3rem,6.4vw,5.75rem)]">Your studio, <span className="accent">in your pocket.</span></h1>
       <p className="mt-6 max-w-md text-lg leading-relaxed text-ink-2 md:text-xl">Write, adapt, schedule and track your content across six platforms — wherever the idea strikes.</p>
       <div className="mt-10 flex flex-wrap gap-3">
         {stores.map(s => {
           const body = <><s.logo /><span className="leading-tight"><span className="block text-[11px] opacity-70">{s.url ? s.sub : "Coming soon to"}</span><span className="block text-[17px] font-semibold tracking-[-.01em]">{s.name}</span></span></>;
           return s.url
-            ? <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-[60px] items-center gap-3 rounded-2xl bg-ink px-5 text-white transition hover:bg-black">{body}</a>
+            ? <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-[60px] items-center gap-3 rounded-2xl bg-ink px-5 text-white transition-colors hover:bg-black">{body}</a>
             : <div key={s.name} aria-disabled="true" className="inline-flex h-[60px] items-center gap-3 rounded-2xl bg-ink/90 px-5 text-white opacity-60">{body}</div>;
         })}
       </div>
       {!anyStore && <p className="mt-4 text-[13px] text-ink-3">Store links will appear here at launch.</p>}
       <SmartLink href="/app/" className="group mt-10 inline-flex items-center gap-1.5 text-[15px] font-medium">Can’t wait? Try it in your browser<ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></SmartLink>
     </div>
-    <div className="hero-panel relative h-[560px] overflow-hidden rounded-[32px] md:h-[640px] md:rounded-[48px]">
+    <div className="relative h-[560px] overflow-hidden rounded-[24px] md:h-[640px]">
+      <Image src="/images/travel-creator.webp" alt="A traveler looking out across the mountains" fill priority sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" /><div className="absolute inset-0 bg-gradient-to-b from-black/0 to-black/40" />
       <div className="anim-rise absolute left-1/2 top-24 w-[220px] -translate-x-[calc(50%+90px)] md:w-[250px] md:-translate-x-[calc(50%+110px)]" style={{ "--r": "-6deg", animationDelay: ".3s" } as React.CSSProperties}><Phone screen="calendar" sizes="250px" /></div>
       <div className="anim-rise absolute left-1/2 top-14 w-[240px] -translate-x-[calc(50%-80px)] md:w-[280px] md:-translate-x-[calc(50%-100px)]" style={{ "--r": "4deg", animationDelay: ".15s" } as React.CSSProperties}><Phone screen="home" priority sizes="280px" /></div>
     </div>

@@ -15,19 +15,19 @@ const features = [
 
 export default function Features() {
   return <>
-    <PageHero name="Features" path="/features" title={<>Made for the way<br />you create.</>} description="A focused mobile workspace — from the first draft to the moment it goes live." />
+    <PageHero name="Features" path="/features" title={<>Made for the way <span className="accent">you create.</span></>} description="A focused mobile workspace — from the first draft to the moment it goes live." />
     <div className="wrap space-y-24 pb-8 md:space-y-36">
       {features.map((f, i) => <section key={f.id} id={f.id} className="grid items-center gap-10 lg:grid-cols-2 lg:gap-20">
-        <Reveal className={`relative h-[480px] overflow-hidden rounded-[32px] md:h-[600px] md:rounded-[40px] ${i % 2 ? "lg:order-2" : ""}`}>
+        <Reveal className={`relative h-[480px] overflow-hidden rounded-[24px] md:h-[600px] ${i % 2 ? "lg:order-2" : ""}`}>
           <Image src={`/images/${f.photo}.webp`} alt={f.alt} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" priority={i === 0} />
           <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/15 to-black/55" />
           <Phone screen={f.screen} priority={i === 0} className="absolute left-1/2 top-20 w-[250px] -translate-x-1/2 md:top-24 md:w-[290px]" sizes="290px" />
         </Reveal>
         <div className="lg:max-w-md">
           <Eyebrow>{f.label}</Eyebrow>
-          <h2 className="text-[clamp(2rem,3.6vw,3rem)] font-semibold leading-[1.05] tracking-[-.04em]">{f.title}</h2>
+          <h2 className="display text-[clamp(2.25rem,4vw,3.5rem)]">{f.title}</h2>
           <p className="mt-5 text-lg leading-relaxed text-ink-2">{f.body}</p>
-          <ul className="mt-8 space-y-3">{f.bullets.map(b => <CheckItem key={b}>{b}</CheckItem>)}</ul>
+          <ul className="mt-8">{f.bullets.map(b => <CheckItem key={b}>{b}</CheckItem>)}</ul>
         </div>
       </section>)}
     </div>

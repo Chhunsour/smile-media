@@ -99,18 +99,18 @@ The seed video items are photographs used as covers, not playable video files, a
 
 ## Built
 
-Redesigned on 2026-10-08 (replaces the round 1–4 dark visual layer).
+Redesigned on 2026-10-08 (editorial pass; replaces earlier visual layers).
 
 - Standalone Next.js App Router, TypeScript, Tailwind CSS 4, Framer Motion. Static export to `out/`.
-- Home, Features, Platforms, Pricing, FAQ, Privacy, Terms, Get the app, 404, plus the Expo demo at `/app/`.
-- Home: centered hero with three real app screens rising out of a warm gradient stage, platform strip, auto-playing "publish to every platform" demo, feature bento, creator photo marquee, insights over studio photography, platform grid, FAQ, dark CTA.
-- Motion is CSS keyframes for the hero (transform/opacity only) and Framer Motion fade-up reveals below the fold. `prefers-reduced-motion` drops movement and stops the marquee and floating chips.
+- Home: broadcast hero (composer phone publishing to six platform cards along animated connectors, synced with a rolling headline), scroll-inked statement, sticky scroll feature tour (photo + phone crossfade), interactive publish demo, platform spec table, photo collage with unmask reveals, FAQ, typographic closer.
+- Inner pages share the same system: numbered section heads, hairline rules, serif-italic accents.
+- Motion: CSS keyframes + SVG SMIL in the hero, Framer Motion reveals, CSS scroll-driven animations (statement, header progress) as progressive enhancement. `prefers-reduced-motion` removes movement.
 - Per-page metadata, canonicals, Open Graph/Twitter cards, sitemap, robots, `llms.txt`, `llms-full.txt`, JSON-LD (Organization, SoftwareApplication, FAQPage, BreadcrumbList).
-- Sample testimonials were removed. Pricing tiers are placeholders flagged "Preview pricing" on the page.
+- No testimonials. Pricing tiers are placeholders flagged "Preview pricing" on the page.
 
 ## Design choices
 
-Light, warm editorial canvas (`#fbfaf7`) with ink text (`#111114`) so the dark app screens stand out in realistic phone frames. The orange→pink brand gradient (`#ff9f43 → #f7377f`) is reserved for the headline word, primary accents and CTAs. Dark (`#0d0d10`) is used for contrast bands: the creator marquee, AI card and final CTA. Sora for headlines (matches the app), Geist for body text.
+Warm paper canvas (`#f8f6f1`), ink (`#141414`), hairline rules. Type: Bricolage Grotesque (display, slightly condensed), Instrument Serif italic (emphasis), Geist (body). The orange→pink brand appears only in the logo, hero pulses and header scroll progress; the dark app screens supply the color.
 
 ## Real app screenshots
 

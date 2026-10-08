@@ -76,6 +76,7 @@ try {
   await page.getByRole("button",{name:"Instagram",exact:false}).click();
   await page.getByRole("button",{name:"Publish to 5 platforms"}).click();
   await page.getByText("Done — live on 5 platforms in this preview.").waitFor();
+  await page.waitForTimeout(500); // let the button’s short opacity transition settle
   const runningAnimations=await page.evaluate(()=>document.getAnimations().filter(a=>a.playState==="running").length);
   if(runningAnimations) failures.push({reducedMotionRunningAnimations:runningAnimations});
 
