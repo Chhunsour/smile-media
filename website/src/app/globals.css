@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #fbfaf7;
+  --color-mist: #f3f1ec;
+  --color-ink: #111114;
+  --color-ink-2: #4f4e57;
+  --color-ink-3: #8b8a93;
+  --color-line: #e8e5df;
+  --color-night: #0d0d10;
+  --color-night-2: #18181d;
+  --color-orange: #ff9f43;
+  --color-pink: #f7377f;
+  --ease-soft: cubic-bezier(.2, .7, .2, 1);
+}
+@theme inline {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), var(--font-geist), ui-sans-serif, sans-serif;
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 88px; -webkit-text-size-adjust: 100%; }
+body { background: var(--color-canvas); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+::selection { background: #ffd8c4; color: var(--color-ink); }
+:focus-visible { outline: 2px solid var(--color-pink); outline-offset: 3px; border-radius: 8px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; }
+p { text-wrap: pretty; }
+
+.wrap { width: min(1200px, calc(100% - 40px)); margin-inline: auto; }
+.text-gradient { background: linear-gradient(100deg, #ff9f43 0%, #ff5f5f 45%, #f7377f 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bg-brand { background: linear-gradient(100deg, #ff9f43 0%, #ff5f5f 50%, #f7377f 100%); }
+
+/* Phone frame: sized by its width; everything inside scales with it. */
+.phone { container-type: inline-size; }
+.phone-body { padding: 2.4cqw; border-radius: 14cqw; background: #0b0b0d; box-shadow: inset 0 0 0 .5cqw #2a2a30, 0 1px 1px rgba(0,0,0,.08), 0 30px 60px -20px rgba(17,17,20,.45), 0 60px 120px -40px rgba(17,17,20,.35); }
+.phone-screen { position: relative; overflow: hidden; border-radius: 11.6cqw; background: #121216; }
+.phone-status { position: relative; height: 11cqw; display: flex; align-items: center; justify-content: space-between; padding: 1.6cqw 8cqw 0; color: #fff; font: 600 3.7cqw/1 var(--font-sans); background: linear-gradient(180deg, #1a1012, #160f12); }
+.phone-island { position: absolute; left: 50%; top: 2.4cqw; width: 27cqw; height: 7.4cqw; transform: translateX(-50%); border-radius: 99px; background: #000; }
+.phone-screen img { display: block; width: 100%; height: auto; }
+
+/* Hero */
+.hero-panel { background:
+  radial-gradient(55% 65% at 50% 105%, rgba(247,55,127,.30), transparent 70%),
+  radial-gradient(45% 55% at 15% 95%, rgba(255,159,67,.38), transparent 70%),
+  radial-gradient(40% 50% at 88% 85%, rgba(255,95,95,.26), transparent 70%),
+  linear-gradient(180deg, #fff8f3 0%, #ffece6 100%); }
+@keyframes rise { from { opacity: 0; transform: translate3d(0, 70px, 0) rotate(var(--r, 0deg)); } to { opacity: 1; transform: translate3d(0, 0, 0) rotate(var(--r, 0deg)); } }
+@keyframes lift { from { transform: translateY(18px); } to { transform: none; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.anim-rise { animation: rise 1.1s var(--ease-soft) both; transform: rotate(var(--r, 0deg)); }
+.anim-lift { animation: lift .9s var(--ease-soft) both; }
+.anim-fade { animation: fade-up .9s var(--ease-soft) both; }
+.anim-float { animation: float 6s ease-in-out infinite; }
+
+/* Creator marquee */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; width: max-content; animation: marquee 60s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* FAQ */
+details summary { list-style: none; cursor: pointer; }
+details summary::-webkit-details-marker { display: none; }
+details[open] .faq-icon { transform: rotate(45deg); }
+
+/* Legal copy */
+.prose-legal h2 { font-size: 1.375rem; font-weight: 600; letter-spacing: -.02em; margin: 2.75rem 0 .75rem; }
+.prose-legal p { color: var(--color-ink-2); line-height: 1.75; }
+.prose-legal a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .anim-rise, .anim-lift, .anim-fade, .anim-float { animation: none; }
+  .marquee { mask-image: none; overflow-x: auto; }
+  .marquee-track { animation: none; }
+}

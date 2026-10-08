@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.env*.local
+qa/*.png
+qa/*lighthouse*.html
+qa/*lighthouse*.json
+# Expo names exported dependency assets under a node_modules path. They are public files.
+!public/app/assets/**

@@ -1,0 +1,681 @@
+{
+  "results": [
+    {
+      "width": 390,
+      "check": "Home and demo banner",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 105,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Posts tab",
+      "url": "/app/posts",
+      "opacity": 1,
+      "nodesChecked": 27,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Calendar tab",
+      "url": "/app/calendar",
+      "opacity": 1,
+      "nodesChecked": 26,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "You tab",
+      "url": "/app/profile",
+      "opacity": 1,
+      "nodesChecked": 41,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Home tab",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 105,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Insights period filters",
+      "url": "/app/insights",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Connections and cancel dialog",
+      "url": "/app/connections",
+      "opacity": 1,
+      "nodesChecked": 31,
+      "motionWrappers": 12,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Template create and delete dialog",
+      "url": "/app/templates",
+      "opacity": 1,
+      "nodesChecked": 22,
+      "motionWrappers": 5,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Reset confirmation",
+      "url": "/app/profile",
+      "opacity": 1,
+      "nodesChecked": 42,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Demo AI applies caption",
+      "url": "/app/compose",
+      "opacity": 1,
+      "nodesChecked": 22,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Compose → preview → publish to three channels",
+      "url": "/app/publishing/vyosu6b0",
+      "opacity": 1,
+      "nodesChecked": 29,
+      "motionWrappers": 2,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Dynamic publishing deep-link reload",
+      "url": "/app/publishing/vyosu6b0",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Published post persists",
+      "url": "/app/posts",
+      "opacity": 1,
+      "nodesChecked": 27,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Web time picker and schedule",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 120,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Picked photo survives post deep-link reload",
+      "url": "/app/post/do1cw3a7",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Direct /app/compose",
+      "url": "/app/compose",
+      "opacity": 1,
+      "nodesChecked": 20,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Direct /app/insights",
+      "url": "/app/insights",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Direct /app/templates",
+      "url": "/app/templates",
+      "opacity": 1,
+      "nodesChecked": 21,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "width": 390,
+      "check": "Direct /app/connections",
+      "url": "/app/connections",
+      "opacity": 1,
+      "nodesChecked": 31,
+      "motionWrappers": 12,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Home and demo banner",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 105,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Posts tab",
+      "url": "/app/posts",
+      "opacity": 1,
+      "nodesChecked": 27,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Calendar tab",
+      "url": "/app/calendar",
+      "opacity": 1,
+      "nodesChecked": 26,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "You tab",
+      "url": "/app/profile",
+      "opacity": 1,
+      "nodesChecked": 41,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Home tab",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 105,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Insights period filters",
+      "url": "/app/insights",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Connections and cancel dialog",
+      "url": "/app/connections",
+      "opacity": 1,
+      "nodesChecked": 31,
+      "motionWrappers": 12,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Template create and delete dialog",
+      "url": "/app/templates",
+      "opacity": 1,
+      "nodesChecked": 22,
+      "motionWrappers": 5,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Reset confirmation",
+      "url": "/app/profile",
+      "opacity": 1,
+      "nodesChecked": 42,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Demo AI applies caption",
+      "url": "/app/compose",
+      "opacity": 1,
+      "nodesChecked": 22,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Compose → preview → publish to three channels",
+      "url": "/app/publishing/gj3tpurx",
+      "opacity": 1,
+      "nodesChecked": 29,
+      "motionWrappers": 2,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Dynamic publishing deep-link reload",
+      "url": "/app/publishing/gj3tpurx",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Published post persists",
+      "url": "/app/posts",
+      "opacity": 1,
+      "nodesChecked": 27,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Web time picker and schedule",
+      "url": "/app/",
+      "opacity": 1,
+      "nodesChecked": 120,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Direct /app/compose",
+      "url": "/app/compose",
+      "opacity": 1,
+      "nodesChecked": 20,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Direct /app/insights",
+      "url": "/app/insights",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Direct /app/templates",
+      "url": "/app/templates",
+      "opacity": 1,
+      "nodesChecked": 21,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "width": 1440,
+      "check": "Direct /app/connections",
+      "url": "/app/connections",
+      "opacity": 1,
+      "nodesChecked": 31,
+      "motionWrappers": 12,
+      "samples": 2
+    }
+  ],
+  "screenAudits": [
+    {
+      "screen": "home",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/",
+      "screenshot": "home-direct.png",
+      "opacity": 1,
+      "nodesChecked": 111,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "screen": "posts",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/posts/",
+      "screenshot": "posts-direct.png",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "calendar",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/calendar/",
+      "screenshot": "calendar-direct.png",
+      "opacity": 1,
+      "nodesChecked": 32,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "settings",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/profile/",
+      "screenshot": "settings-direct.png",
+      "opacity": 1,
+      "nodesChecked": 43,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "connections",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/connections/",
+      "screenshot": "connections-direct.png",
+      "opacity": 1,
+      "nodesChecked": 33,
+      "motionWrappers": 12,
+      "samples": 2
+    },
+    {
+      "screen": "insights",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/insights/",
+      "screenshot": "insights-direct.png",
+      "opacity": 1,
+      "nodesChecked": 39,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "templates",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/templates/",
+      "screenshot": "templates-direct.png",
+      "opacity": 1,
+      "nodesChecked": 24,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "screen": "compose",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/",
+      "screenshot": "compose-direct.png",
+      "opacity": 1,
+      "nodesChecked": 21,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "publishing",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/publishing/p_reel/",
+      "screenshot": "publishing-direct.png",
+      "opacity": 1,
+      "nodesChecked": 29,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "post-detail",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/post/p_reel/",
+      "screenshot": "post-detail-direct.png",
+      "opacity": 1,
+      "nodesChecked": 34,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "settings",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/profile",
+      "screenshot": "settings-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 43,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "connections",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/connections",
+      "screenshot": "connections-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 33,
+      "motionWrappers": 12,
+      "samples": 2
+    },
+    {
+      "screen": "insights",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/insights",
+      "screenshot": "insights-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 39,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "templates",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/templates",
+      "screenshot": "templates-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 24,
+      "motionWrappers": 4,
+      "samples": 2
+    },
+    {
+      "screen": "template-editor",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/templates",
+      "screenshot": "template-editor-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 24,
+      "motionWrappers": 5,
+      "samples": 2
+    },
+    {
+      "screen": "posts",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/posts",
+      "screenshot": "posts-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "calendar",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/calendar",
+      "screenshot": "calendar-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 32,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "home",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/",
+      "screenshot": "home-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 111,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "screen": "compose",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose",
+      "screenshot": "compose-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 21,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "compose-media",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose/media",
+      "screenshot": "compose-media-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 19,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-accounts",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose/accounts",
+      "screenshot": "compose-accounts-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 42,
+      "motionWrappers": 3,
+      "samples": 2
+    },
+    {
+      "screen": "compose-ai",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose/ai",
+      "screenshot": "compose-ai-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 28,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "compose-review",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose/review",
+      "screenshot": "compose-review-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 24,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "compose-schedule",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/compose/schedule",
+      "screenshot": "compose-schedule-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 55,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "publishing",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/publishing/ukojdt4y",
+      "screenshot": "publishing-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 29,
+      "motionWrappers": 1,
+      "samples": 2
+    },
+    {
+      "screen": "post-detail",
+      "mode": "navigation",
+      "width": 390,
+      "url": "/app/post/ukojdt4y",
+      "screenshot": "post-detail-navigation.png",
+      "opacity": 1,
+      "nodesChecked": 30,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-media",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/media/",
+      "screenshot": "compose-media-direct.png",
+      "opacity": 1,
+      "nodesChecked": 19,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-accounts",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/accounts/",
+      "screenshot": "compose-accounts-direct.png",
+      "opacity": 1,
+      "nodesChecked": 37,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-ai",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/ai/",
+      "screenshot": "compose-ai-direct.png",
+      "opacity": 1,
+      "nodesChecked": 21,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-review",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/review/",
+      "screenshot": "compose-review-direct.png",
+      "opacity": 1,
+      "nodesChecked": 19,
+      "motionWrappers": 0,
+      "samples": 2
+    },
+    {
+      "screen": "compose-schedule",
+      "mode": "direct",
+      "width": 390,
+      "url": "/app/compose/schedule/",
+      "screenshot": "compose-schedule-direct.png",
+      "opacity": 1,
+      "nodesChecked": 55,
+      "motionWrappers": 0,
+      "samples": 2
+    }
+  ],
+  "errors": []
+}

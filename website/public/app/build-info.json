@@ -1,0 +1,108 @@
+{
+  "app": "MultiPostly",
+  "mode": "demo",
+  "baseUrl": "/app",
+  "expo": "~57.0.27",
+  "sourceLock": "301725e387a23ef2",
+  "webMotion": [
+    {
+      "file": "src/app/(tabs)/calendar.tsx",
+      "wrappers": 1,
+      "properties": [
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/(tabs)/index.tsx",
+      "wrappers": 3,
+      "properties": [
+        "entering",
+        "entering",
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/(tabs)/posts.tsx",
+      "wrappers": 1,
+      "properties": [
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/compose/ai.tsx",
+      "wrappers": 1,
+      "properties": [
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/compose/index.tsx",
+      "wrappers": 2,
+      "properties": [
+        "entering",
+        "exiting",
+        "layout",
+        "layout"
+      ]
+    },
+    {
+      "file": "src/app/compose/review.tsx",
+      "wrappers": 1,
+      "properties": [
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/connections.tsx",
+      "wrappers": 2,
+      "properties": [
+        "layout",
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/insights.tsx",
+      "wrappers": 1,
+      "properties": [
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/publishing/[id].tsx",
+      "wrappers": 2,
+      "properties": [
+        "entering",
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/sign-in.tsx",
+      "wrappers": 5,
+      "properties": [
+        "layout",
+        "entering",
+        "entering",
+        "layout",
+        "entering",
+        "entering"
+      ]
+    },
+    {
+      "file": "src/app/templates.tsx",
+      "wrappers": 2,
+      "properties": [
+        "entering",
+        "layout"
+      ]
+    },
+    {
+      "file": "src/components/ui.tsx",
+      "wrappers": 2,
+      "properties": [
+        "entering",
+        "entering",
+        "exiting"
+      ]
+    }
+  ]
+}

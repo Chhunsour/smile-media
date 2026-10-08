@@ -1,0 +1,40 @@
+import { useSyncExternalStore } from 'react';
+import { Modal, Platform, Pressable, Text, View } from 'react-native';
+
+type Action = { text?: string; style?: string; onPress?: () => void };
+type Dialog = { title: string; message?: string; actions: Action[] };
+let dialog: Dialog | null = null;
+const listeners = new Set<() => void>();
+const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
+const emit = () => listeners.forEach(listener => listener());
+function dismiss(action?: Action) { dialog = null; emit(); action?.onPress?.(); }
+export const WebAlert = {
+  alert(title: string, message?: string, actions: Action[] = [{ text: 'OK' }]) {
+    if (Platform.OS !== 'web') return;
+    dialog = { title, message, actions }; emit();
+  },
+};
+export function WebAlertHost() {
+  const current = useSyncExternalStore(subscribe, () => dialog, () => null);
+  if (!current) return null;
+  return <Modal visible transparent animationType="fade" onRequestClose={() => dismiss(current.actions.find(a => a.style === 'cancel'))}>
+    <View style={{ flex:1,backgroundColor:'#000a',alignItems:'center',justifyContent:'center',padding:24 }}>
+      <View style={{ width:'100%',maxWidth:380,borderRadius:24,padding:24,backgroundColor:'#18181d',borderWidth:1,borderColor:'#37373f' }}>
+        <Text accessibilityRole="header" style={{ fontSize:21,fontWeight:'700',color:'#fff',marginBottom:10 }}>{current.title}</Text>
+        {current.message ? <Text style={{ color:'#bdbdc8',fontSize:14,lineHeight:21,marginBottom:16 }}>{current.message}</Text> : null}
+        {current.actions.map((action,i) => <Pressable accessibilityRole="button" key={i} onPress={() => dismiss(action)} style={{ minHeight:46,padding:12,marginTop:8,borderRadius:12,backgroundColor:action.style==='cancel'?'#292930':'#ff694f' }}>
+          <Text style={{ fontWeight:'600',textAlign:'center',color:action.style==='cancel'?'#fff':'#150e0d' }}>{action.text || 'OK'}</Text>
+        </Pressable>)}
+      </View>
+    </View>
+  </Modal>;
+}
+export function WebTimePicker({ date, onChange }: { date: Date; onChange: (date: Date) => void }) {
+  if (Platform.OS !== 'web') return null;
+  const value = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  return <input aria-label="Scheduled time" type="time" step={300} value={value} onChange={event => {
+    if (!event.target.value) return;
+    const [hours,minutes] = event.target.value.split(':').map(Number);
+    const next = new Date(date); next.setHours(hours,minutes,0,0); onChange(next);
+  }} style={{ display:'block',width:'calc(100% - 40px)',minHeight:56,margin:'0 20px',padding:'0 16px',border:'1px solid #37373f',borderRadius:16,background:'#18181d',color:'#fff',font:'600 17px sans-serif',colorScheme:'dark' }} />;
+}

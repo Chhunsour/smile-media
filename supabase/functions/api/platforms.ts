@@ -17,9 +17,10 @@ const expiresIn = (s?: number) => (s ? new Date(Date.now() + (s - 60) * 1000).to
 
 async function json(res: Response) {
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) {
+  // TikTok sends error: { code: 'ok' } on every successful response.
+  if (!res.ok || (data.error && data.error.code !== 'ok')) {
     const e = data.error;
-    const msg = typeof e === 'string' ? (data.error_description ?? e) : (e?.message ?? data.detail ?? data.description ?? `HTTP ${res.status}`);
+    const msg = typeof e === 'string' ? (data.error_description || e) : (e?.message || data.detail || data.description || `HTTP ${res.status}`);
     throw new Error(msg);
   }
   return data;
@@ -131,9 +132,12 @@ export async function exchange(platform: Platform, code: string, redirect: strin
       }),
     );
     const token = { access_token: t.access_token, refresh_token: t.refresh_token, expires_at: expiresIn(t.expires_in) };
+    // Each field needs its own scope; asking for one that wasn't granted fails the whole call (scope_not_authorized).
+    const granted = String(t.scope ?? '').split(',');
+    const fields = ['open_id', 'display_name', 'avatar_url', granted.includes('user.info.profile') && 'username', granted.includes('user.info.stats') && 'follower_count'].filter(Boolean);
     const u = (
       await json(
-        await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,username,avatar_url,follower_count', {
+        await fetch(`https://open.tiktokapis.com/v2/user/info/?fields=${fields}`, {
           headers: { Authorization: `Bearer ${t.access_token}` },
         }),
       )

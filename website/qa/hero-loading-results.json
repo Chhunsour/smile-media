@@ -1,0 +1,114 @@
+[
+  {
+    "width": 390,
+    "route": "/",
+    "heroImages": 3,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/features/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/platforms/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/pricing/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/faq/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/download/",
+    "heroImages": 4,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/privacy/",
+    "heroImages": 0,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 390,
+    "route": "/terms/",
+    "heroImages": 0,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/",
+    "heroImages": 3,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/features/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/platforms/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/pricing/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/faq/",
+    "heroImages": 2,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/download/",
+    "heroImages": 4,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/privacy/",
+    "heroImages": 0,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  },
+  {
+    "width": 1440,
+    "route": "/terms/",
+    "heroImages": 0,
+    "firstPaint": "Inline blurred placeholder while requests held for 2.1 seconds",
+    "eagerHighPriorityPreloaded": true
+  }
+]

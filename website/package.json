@@ -1,0 +1,40 @@
+{
+  "name": "multipostly-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "next build --webpack",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "preview": "node scripts/preview.mjs",
+    "assets": "node scripts/prepare-assets.mjs && node scripts/prepare-placeholders.mjs",
+    "check": "node scripts/check-site.mjs",
+    "audit": "node scripts/lighthouse.mjs",
+    "build:app": "node scripts/build-web-app.mjs",
+    "build:all": "npm run build:app && npm run build",
+    "check:app": "node scripts/check-web-app.mjs"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "framer-motion": "^12.0.0",
+    "lucide-react": "^0.577.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "sharp": "^0.34.0",
+    "playwright": "^1.56.0",
+    "@axe-core/playwright": "^4.11.0",
+    "lighthouse": "^13.0.0",
+    "serve": "^14.2.0"
+  }
+}
