@@ -39,7 +39,7 @@
 
 /* Phone frame: sized by its width; everything inside scales with it. */
 .phone { container-type: inline-size; }
-.phone-body { padding: 2.4cqw; border-radius: 14cqw; background: #0b0b0d; box-shadow: inset 0 0 0 .5cqw #2a2a30, 0 1px 1px rgba(0,0,0,.08), 0 30px 60px -24px rgba(20,20,20,.4), 0 70px 120px -50px rgba(20,20,20,.35); }
+.phone-body { padding: 2.4cqw; border-radius: 14cqw; background: #0b0b0d; box-shadow: inset 0 0 0 .5cqw #2a2a30, 0 0 0 1px rgba(255,255,255,.07), 0 1px 1px rgba(0,0,0,.08), 0 30px 60px -24px rgba(20,20,20,.4), 0 70px 120px -50px rgba(20,20,20,.35); }
 .phone-screen { position: relative; overflow: hidden; border-radius: 11.6cqw; background: #121216; }
 .phone-status { position: relative; height: 11cqw; display: flex; align-items: center; justify-content: space-between; padding: 1.6cqw 8cqw 0; color: #fff; font: 600 3.7cqw/1 var(--font-sans); background: linear-gradient(180deg, #1a1012, #160f12); }
 .phone-island { position: absolute; left: 50%; top: 2.4cqw; width: 27cqw; height: 7.4cqw; transform: translateX(-50%); border-radius: 99px; background: #000; }
@@ -52,29 +52,37 @@
 .anim-rise { animation: rise 1.1s var(--ease-soft) both; }
 .anim-lift { animation: lift .9s var(--ease-soft) both; }
 .anim-fade { animation: fade-up .9s var(--ease-soft) both; }
+@keyframes fade-in { from { opacity: 0; } }
+.anim-in { animation: fade-in 1.2s ease both; }
 
-/* Hero: rolling headline */
-.roll { display: inline-grid; clip-path: polygon(-20% -8%, 130% -8%, 130% 124%, -20% 124%); }
-.roll > span { grid-area: 1 / 1; white-space: nowrap; justify-self: start; }
-@keyframes roll-pass { 0% { transform: translateY(100%); opacity: 0; } 26%, 74% { transform: none; opacity: 1; } 100% { transform: translateY(-100%); opacity: 0; } }
-@keyframes roll-out { to { transform: translateY(-100%); opacity: 0; } }
-@keyframes roll-in { from { transform: translateY(100%); opacity: 0; } }
-.roll-pass { animation: roll-pass .95s var(--ease-soft) both; }
-.roll-out { animation: roll-out .3s ease-in both; }
-.roll-in { animation: roll-in .5s var(--ease-soft) both; }
-
-/* Hero: broadcast stage */
-.hero-stage { container-type: inline-size; }
-.hero-card { width: 22cqw; height: 10.67cqw; }
-@keyframes draw { to { stroke-dashoffset: 0; } }
-.hero-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1s .5s var(--ease-soft) forwards; }
-.hero-node { opacity: 0; animation: fade-up .5s 1.2s ease forwards; }
-@keyframes pop { 0% { opacity: 0; transform: scale(.5); } 60% { opacity: 1; transform: scale(1.12); } 100% { opacity: 1; transform: none; } }
-.hero-live { animation: pop .55s var(--ease-soft) both; }
-@keyframes hit { from { outline: 1.5px solid rgba(247,55,127,.6); outline-offset: 0; } to { outline: 1.5px solid rgba(247,55,127,0); outline-offset: 1.2cqw; } }
-.hero-card-hit { animation: hit .9s ease-out forwards; outline: 1.5px solid transparent; }
-@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.7cqw); } }
-.hero-bob { display: inline-flex; animation: bob 5s ease-in-out infinite; }
+/* Hero: dark cinematic panel. Stage light + film grain behind a 3D fan of phones. */
+@keyframes drift { from { transform: translate3d(-2%, 0, 0) scale(1); } to { transform: translate3d(2%, -4%, 0) scale(1.08); } }
+.hero-light { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(42% 46% at 50% 92%, rgba(255,122,74,.75), transparent 72%),
+    radial-gradient(30% 38% at 30% 86%, rgba(247,55,127,.6), transparent 70%),
+    radial-gradient(30% 38% at 70% 90%, rgba(255,159,67,.5), transparent 70%),
+    radial-gradient(70% 40% at 50% 0%, rgba(255,255,255,.07), transparent 70%);
+  filter: blur(24px); animation: drift 14s ease-in-out infinite alternate; }
+.hero-grain { position: absolute; inset: 0; pointer-events: none; opacity: .14; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.hero-stage { container-type: inline-size; aspect-ratio: 1200 / 560; }
+@media (max-width: 767px) { .hero-stage { aspect-ratio: 100 / 112; } }
+/* The phone fan: individual translate/rotate properties so the entrance animation's transform composes on top. */
+.hp { position: absolute; left: 50%; }
+.hp-c { width: 25cqw; top: 2%; translate: -50% 0 40px; }
+.hp-l { width: 20.5cqw; top: 13%; translate: calc(-50% - 23cqw) 0 -110px; rotate: y 20deg; }
+.hp-r { width: 20.5cqw; top: 13%; translate: calc(-50% + 23cqw) 0 -110px; rotate: y -20deg; }
+@media (max-width: 767px) {
+  .hp-c { width: 56cqw; top: 3%; }
+  .hp-l { width: 42cqw; top: 15%; translate: calc(-50% - 31cqw) 0 -120px; }
+  .hp-r { width: 42cqw; top: 15%; translate: calc(-50% + 31cqw) 0 -120px; }
+}
+.phone-glare { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(118deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 28%, rgba(255,255,255,0) 42%); }
+.app-tile { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 27%; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -.15em .4em rgba(0,0,0,.15), 0 1.4em 2.4em -1em rgba(0,0,0,.7); }
+.app-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 50%); pointer-events: none; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.1cqw); } }
+.hero-bob { animation: bob 6s ease-in-out infinite; }
 
 /* Statement words ink in with scroll (progressive enhancement) */
 @supports (animation-timeline: view()) {
@@ -105,8 +113,5 @@ details[open] .faq-icon { transform: rotate(45deg); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .anim-rise, .anim-lift, .anim-fade, .roll-out, .hero-line, .hero-node, .hero-live, .hero-card-hit, .hero-bob { animation: none; }
-  .hero-line { stroke-dashoffset: 0; }
-  .hero-node { opacity: 1; }
-  .roll-pass, .roll-in, .hero-pulses { display: none; }
+  .anim-rise, .anim-lift, .anim-fade, .anim-in, .hero-light, .hero-bob { animation: none; }
 }

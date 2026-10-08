@@ -55,7 +55,7 @@ const screenLabels: Record<string, string> = {
   calendar: "MultiPostly scheduling calendar",
   posts: "MultiPostly posts library",
 };
-export function Phone({ screen, className = "", priority = false, sizes = "300px", style }: { screen: string; className?: string; priority?: boolean; sizes?: string; style?: React.CSSProperties }) {
+export function Phone({ screen, className = "", priority = false, sizes = "300px", style, glare = false }: { screen: string; className?: string; priority?: boolean; sizes?: string; style?: React.CSSProperties; glare?: boolean }) {
   const src = `/screens/${screen}.webp`;
   const srcSet = `/screens/${screen}-390.webp 390w, /screens/${screen}-480.webp 480w, ${src} 780w`;
   if (priority) preload(src, { as: "image", fetchPriority: "high", imageSrcSet: srcSet, imageSizes: sizes });
@@ -63,6 +63,7 @@ export function Phone({ screen, className = "", priority = false, sizes = "300px
     <div className="phone-body"><div className="phone-screen">
       <div className="phone-status" aria-hidden="true"><span>9:41</span><span className="phone-island" /><StatusIcons /></div>
       <picture><source srcSet={srcSet} sizes={sizes} /><Image src={src} width={390} height={844} alt={screenLabels[screen] ?? `MultiPostly ${screen} screen`} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : undefined} /></picture>
+      {glare && <span className="phone-glare" aria-hidden="true" />}
     </div></div>
   </div>;
 }

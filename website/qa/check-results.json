@@ -348,7 +348,7 @@
       "route": "/features/",
       "status": 200,
       "overflow": false,
-      "brokenImages": 1
+      "brokenImages": 0
     },
     {
       "width": 1440,
@@ -449,50 +449,5 @@
       "brokenImages": 0
     }
   ],
-  "failures": [
-    {
-      "width": 1440,
-      "route": "/features/",
-      "facts": {
-        "overflow": false,
-        "h1": 1,
-        "broken": [
-          "http://localhost:3100/screens/calendar.webp"
-        ],
-        "canonical": "https://multipostly.app/features/",
-        "og": "https://multipostly.app/og.png",
-        "forbidden": false,
-        "schemas": [
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://multipostly.app/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Features",
-                "item": "https://multipostly.app/features/"
-              }
-            ]
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "@id": "https://multipostly.app/#organization",
-            "name": "MultiPostly",
-            "url": "https://multipostly.app/",
-            "logo": "https://multipostly.app/images/logo.png",
-            "description": "Mobile social publishing for creators."
-          }
-        ]
-      },
-      "status": 200
-    }
-  ]
+  "failures": []
 }
