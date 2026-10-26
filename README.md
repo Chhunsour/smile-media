@@ -1,4 +1,16 @@
-# MultiPostly
+# MultiPostly 📱
+
+<p align="center">
+  <sub>Developed by <strong>Seng Chhunsour</strong></sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Chhunsour"><img src="https://img.shields.io/badge/Author-Seng%20Chhunsour-FF5A1F?style=flat-square&logo=github&logoColor=white" alt="Author: Seng Chhunsour" /></a>
+  <img src="https://img.shields.io/badge/Framework-Expo%20%7C%20React%20Native-blue?style=flat-square&logo=expo&logoColor=white" alt="Expo & React Native" />
+  <img src="https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Web-purple?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
+</p>
 
 Write once, publish everywhere. MultiPostly is a mobile app (Expo, React Native) for composing a post and publishing or scheduling it to **Facebook Pages, Instagram, TikTok, YouTube, X and Telegram**, with per-platform previews, captions and options.
 
@@ -68,6 +80,16 @@ To use a different backend, implement the interfaces in `src/services/types.ts` 
 - Platform tokens and app secrets live only in the Edge Function and the `social_tokens` table. Row Level Security leaves that table with no client policies, so the app can never read it.
 - The app only bundles public values (`EXPO_PUBLIC_*`). `.env` files are gitignored.
 - Each user can read and write only their own rows and their own media folder.
+
+---
+
+## 👤 Author & Developer
+
+**Developed by Seng Chhunsour**
+- **GitHub:** [@Chhunsour](https://github.com/Chhunsour)
+- **Repository:** [https://github.com/Chhunsour/smile-media](https://github.com/Chhunsour/smile-media)
+
+---
 
 ## License
 

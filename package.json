@@ -2,6 +2,7 @@
   "name": "multipostly",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "author": "Seng Chhunsour <https://github.com/Chhunsour>",
   "dependencies": {
     "@expo-google-fonts/sora": "^0.4.2",
     "@expo/ui": "~57.0.22",
