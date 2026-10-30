@@ -196,6 +196,23 @@ test('Facebook publishing only reports an actual confirmed Graph response', asyn
     assert(!r.error?.message.includes('secret'));
   });
 });
+test('maintenance gate rejects API, cron and callbacks before accessing the database or Meta', async () => {
+  env.MAINTENANCE_MODE = 'true';
+  const blocked = new Proxy({}, { get() { throw new Error('Database must not be accessed'); } });
+  const handler = createHandler(blocked as any);
+  try {
+    for (const [path, method, body] of [
+      ['api', 'POST', '{"action":"publish"}'],
+      ['api', 'POST', '{"action":"cron"}'],
+      ['callback?state=test', 'GET', undefined],
+      ['data-deletion', 'POST', 'signed_request=test'],
+    ] as const) {
+      const response = await handler(new Request(`https://test/${path}`, { method, body }));
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error.code, 'MAINTENANCE');
+    }
+  } finally { delete env.MAINTENANCE_MODE; }
+});
 test('HTTP handler rejects unauthenticated actions, bad methods, missing cron config and invalid state', async () => {
   const handler = createHandler({
     auth: { getUser: async () => ({ data: { user: null }, error: null }) },

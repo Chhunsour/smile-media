@@ -279,6 +279,11 @@ export function createHandler(admin: SupabaseClient) {
       const url = new URL(req.url);
       const route = url.pathname.replace(/\/+$/, '').split('/').pop();
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
+      // Allows the updated function to be staged against the legacy schema without
+      // touching credentials, callbacks or queued publications during migration.
+      if (Deno.env.get('MAINTENANCE_MODE') === 'true') {
+        return reply({ error: { message: 'MultiPostly is temporarily unavailable. Please try again later.', code: 'MAINTENANCE', retryable: true } }, 503);
+      }
       if (route === 'deletion-status') {
         if (req.method !== 'GET') throw new SafeError('Method not allowed.', 'METHOD_NOT_ALLOWED', 405);
         const code = url.searchParams.get('code') ?? '';
@@ -374,6 +379,7 @@ export function createHandler(admin: SupabaseClient) {
         throw new SafeError('Sign in again.', 'SESSION_REVOKED', 401);
       }
       switch (body.action) {
+        case 'capabilities': return reply({ schemaVersion: '2026-10-30.security.1', publishingProvider: 'meta-graph-direct' });
         case 'connect': {
           validPlatform(body.platform);
           if (body.platform === 'telegram') {

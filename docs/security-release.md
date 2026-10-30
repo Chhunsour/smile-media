@@ -3,6 +3,8 @@
 30 October 2026. Repository: `/Users/chhunsour/Side Project/MultiPostly`.
 This continues the earlier `implementation-tasks.md` inspection. Changes are local; the running API and database still use the old code/schema.
 
+Follow-up preparation and current launch gates are in [launch-runbook.md](launch-runbook.md). Verification counts and dependency counts below describe the earlier `cf18c74` snapshot.
+
 ## Operational state and authorization
 
 The user subsequently authorized: “pause smile media project and unpause on the multipost”. Through the signed-in Supabase dashboard, `smile-media` (`rcfpzphrdjlekldfcjlk`) was paused and `outpost` (`pdecqyjanliqocfigkvd`) resumed. The CLI confirmed **INACTIVE** and **ACTIVE_HEALTHY**, respectively. Both were Free projects; no billing plan, ownership, Meta settings, legal agreement, CAPTCHA, or permission review was changed. No push or deployment occurred.

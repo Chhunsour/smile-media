@@ -30,6 +30,17 @@ async function api<T>(body: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
+let backendCheck: Promise<void> | undefined;
+async function ensureBackend() {
+  backendCheck ??= api<{ schemaVersion: string }>({ action: 'capabilities' }).then(result => {
+    if (result.schemaVersion !== '2026-10-30.security.1') throw new Error('Backend version mismatch.');
+  }).catch(() => {
+    backendCheck = undefined;
+    throw new Error('MultiPostly could not verify this app version with the service. Check your connection and try again later.');
+  });
+  await backendCheck;
+}
+
 const toUser = (u: AuthUser): User => ({
   id: u.id,
   email: u.email ?? '',
@@ -115,6 +126,7 @@ export const supabaseServices: Services = {
       if (error) throw new Error(error.message);
     },
     async deleteAccount() {
+      await ensureBackend();
       await api({ action: 'delete-user', confirm: 'DELETE' });
       await supabase.auth.signOut({ scope: 'local' });
     },
@@ -122,6 +134,7 @@ export const supabaseServices: Services = {
 
   database: {
     async listPosts() {
+      await ensureBackend();
       const rows = must(await supabase.from('posts').select('data').order('updated_at', { ascending: false }));
       const attempts = must(await supabase.from('publish_attempts').select('post_id,page_id,status,result'));
       const renew = async (uri: string) => {
@@ -146,17 +159,20 @@ export const supabaseServices: Services = {
       }));
     },
     async savePost(post) {
+      await ensureBackend();
       must(
         await supabase.from('posts').upsert({ id: post.id, data: post, status: post.status, scheduled_at: post.scheduledAt ?? null, updated_at: post.updatedAt }),
       );
     },
     async deletePost(id) {
+      await ensureBackend();
       must(await supabase.from('posts').delete().eq('id', id));
     },
   },
 
   storage: {
     async upload(asset: MediaAsset) {
+      await ensureBackend();
       const { data } = await supabase.auth.getUser();
       if (!data.user) throw new Error('Sign in to upload media.');
       const uri = await uploadFile(asset.uri, data.user.id, asset.id, asset.mimeType);
@@ -174,6 +190,7 @@ export const supabaseServices: Services = {
 
   publishing: {
     async listAccounts() {
+      await ensureBackend();
       const accounts = must(await supabase.from('social_accounts').select('*, social_pages(*)').order('connected_at'));
       return (accounts ?? []).map(
         (a): SocialAccount => ({
@@ -198,6 +215,7 @@ export const supabaseServices: Services = {
       );
     },
     async connect(platform) {
+      await ensureBackend();
       let accountId: string;
       if (platform === 'telegram') {
         const channel = await askChannel();
@@ -217,9 +235,11 @@ export const supabaseServices: Services = {
       return (await this.listAccounts()).find((a) => a.id === accountId) ?? null;
     },
     async disconnect(accountId) {
+      await ensureBackend();
       await api({ action: 'disconnect', accountId });
     },
     async publish({ postId, page }, onProgress) {
+      await ensureBackend();
       onProgress?.(0.3);
       return api<PublishResult>({ action: 'publish', postId, pageId: page.id });
     },

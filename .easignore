@@ -1,0 +1,13 @@
+node_modules/
+.git/
+.env*
+supabase/
+scripts/
+website/
+tests/
+docs/
+work/
+outputs/
+*.mpb
+*.key
+*.manifest.json

@@ -169,6 +169,9 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
           body: JSON.stringify(body),
         }),
       );
+    const capabilities = await call({ action: 'capabilities' });
+    assert.equal(capabilities.status, 200);
+    assert.equal((await capabilities.json()).schemaVersion, '2026-10-30.security.1');
     let graphWrites = 0;
     const original = globalThis.fetch;
     globalThis.fetch = async (input, init) => {

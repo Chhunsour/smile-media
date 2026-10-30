@@ -1,0 +1,28 @@
+{
+  "cli": { "version": ">= 18.0.0", "appVersionSource": "local" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development",
+      "env": { "EXPO_PUBLIC_APP_MODE": "demo" },
+      "android": { "buildType": "apk" }
+    },
+    "preview-demo": {
+      "distribution": "internal",
+      "environment": "preview",
+      "env": { "EXPO_PUBLIC_APP_MODE": "demo" },
+      "android": { "buildType": "apk" }
+    },
+    "preview-live": {
+      "distribution": "internal",
+      "environment": "preview",
+      "env": { "EXPO_PUBLIC_APP_MODE": "live" },
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "environment": "production",
+      "env": { "EXPO_PUBLIC_APP_MODE": "live" }
+    }
+  }
+}
