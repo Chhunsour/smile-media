@@ -8,7 +8,7 @@ import { features } from '@/config/features';
 import { compact } from '@/lib/format';
 import { PLATFORM_ORDER } from '@/platforms';
 import { APP_MODE, APP_NAME } from '@/config/app';
-import { allPages, type FailureMode, resetDemo, setSettings, signOut, type ThemePref, toast, useStore } from '@/lib/store';
+import { allPages, deleteAccount, type FailureMode, resetDemo, setSettings, signOut, type ThemePref, toast, useStore } from '@/lib/store';
 
 const THEMES: { value: ThemePref; label: string }[] = [
   { value: 'dark', label: 'Dark' },
@@ -146,8 +146,12 @@ export default function Profile() {
                 { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
               ])
             }
-            last
           />
+          <Row icon="trash-outline" title="Delete account and data" tone="danger" onPress={() => Alert.alert(
+            'Delete your MultiPostly account?',
+            'This permanently deletes your account, connections, drafts, schedules, and uploaded media. Posts already sent to Facebook remain on Facebook.',
+            [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete account', style: 'destructive', onPress: () => deleteAccount().catch(e => toast(e.message, 'error')) }]
+          )} last />
         </Group>
       )}
 

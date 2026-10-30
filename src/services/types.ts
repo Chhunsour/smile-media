@@ -17,6 +17,7 @@ export interface AuthProvider {
   /** Social sign-in. Resolve null if the user cancels. Leave out to hide the buttons. */
   signInWith?(provider: 'apple' | 'google'): Promise<User | null>;
   signOut(): Promise<void>;
+  deleteAccount?(): Promise<void>;
 }
 
 export interface DatabaseProvider {

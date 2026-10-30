@@ -20,6 +20,8 @@
   ],
   "exclude": [
     "supabase",
+    "website",
+    "tests",
     "node_modules"
   ]
 }

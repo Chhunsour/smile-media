@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { createClient, type User as AuthUser } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
@@ -10,6 +9,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/app';
 import type { MediaAsset, Post, PublishResult, SocialAccount, User } from '@/models';
 
 import type { Services } from './types';
+import { sessionStorage } from './session-storage';
 
 /*
  * Live providers backed by Supabase: Auth, Postgres (RLS), Storage and the `api` Edge Function
@@ -17,7 +17,7 @@ import type { Services } from './types';
  */
 
 export const supabase = createClient(SUPABASE_URL || 'https://missing.supabase.co', SUPABASE_ANON_KEY || 'missing', {
-  auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, flowType: 'pkce' },
+  auth: { storage: sessionStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, flowType: 'pkce' },
 });
 
 async function api<T>(body: Record<string, unknown>): Promise<T> {
@@ -48,7 +48,9 @@ async function uploadFile(uri: string, userId: string, name: string, mimeType?: 
   const ext = uri.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg';
   const path = `${userId}/${name.replace(/[^\w-]/g, '_')}.${ext}`;
   must(await supabase.storage.from('media').upload(path, body, { contentType: mimeType, upsert: true }));
-  return supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+  const signed = must(await supabase.storage.from('media').createSignedUrl(path, 3600));
+  if (!signed) throw new Error('Media download URL could not be created.');
+  return signed.signedUrl;
 }
 
 const askChannel = () =>
@@ -68,8 +70,8 @@ const askChannel = () =>
 export const supabaseServices: Services = {
   auth: {
     async getUser() {
-      const { data } = await supabase.auth.getSession();
-      return data.session ? toUser(data.session.user) : null;
+      const { data } = await supabase.auth.getUser();
+      return data.user ? toUser(data.user) : null;
     },
     async signIn(email, password) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -102,20 +104,46 @@ export const supabaseServices: Services = {
       const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (res.type !== 'success') return null;
       const q = Linking.parse(res.url).queryParams ?? {};
+      if (typeof q.code !== 'string' && !q.error && !q.error_description) throw new Error('Sign-in did not return an authorization code.');
       if (q.error_description || q.error) throw new Error(String(q.error_description ?? q.error));
       const { data: session, error: exchangeError } = await supabase.auth.exchangeCodeForSession(String(q.code));
       if (exchangeError) throw new Error(exchangeError.message);
       return toUser(session.user);
     },
     async signOut() {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw new Error(error.message);
+    },
+    async deleteAccount() {
+      await api({ action: 'delete-user', confirm: 'DELETE' });
+      await supabase.auth.signOut({ scope: 'local' });
     },
   },
 
   database: {
     async listPosts() {
       const rows = must(await supabase.from('posts').select('data').order('updated_at', { ascending: false }));
-      return (rows ?? []).map((r) => r.data as Post);
+      const attempts = must(await supabase.from('publish_attempts').select('post_id,page_id,status,result'));
+      const renew = async (uri: string) => {
+        try {
+          const url = new URL(uri);
+          if (url.origin !== new URL(SUPABASE_URL).origin) return uri;
+          const match = decodeURIComponent(url.pathname).match(/^\/storage\/v1\/object\/(?:public|sign)\/media\/(.+)$/);
+          if (!match) return uri;
+          const { data, error } = await supabase.storage.from('media').createSignedUrl(match[1], 3600);
+          // Missing media should not hide the user's entire post history.
+          return !error && data ? data.signedUrl : uri;
+        } catch { return uri; }
+      };
+      return Promise.all((rows ?? []).map(async (r) => {
+        const post = r.data as Post;
+        post.destinations = post.destinations.map(d => {
+          const attempt = (attempts ?? []).find(a => a.post_id === post.id && a.page_id === d.pageId);
+          return attempt?.result ? { ...d, status: attempt.result.status, result: attempt.result } : d;
+        });
+        post.media = await Promise.all(post.media.map(async m => ({ ...m, uri: await renew(m.uri), thumb: m.thumb ? await renew(m.thumb) : undefined })));
+        return post;
+      }));
     },
     async savePost(post) {
       must(
@@ -177,12 +205,14 @@ export const supabaseServices: Services = {
         accountId = (await api<{ account: string }>({ action: 'connect', platform, channel })).account;
       } else {
         const redirectUri = Linking.createURL('oauth/callback');
-        const { authUrl } = await api<{ authUrl: string }>({ action: 'connect', platform, redirectUri });
+        const { authUrl, state } = await api<{ authUrl: string; state: string }>({ action: 'connect', platform, redirectUri });
         const res = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
         if (res.type !== 'success') return null;
         const q = Linking.parse(res.url).queryParams ?? {};
+        if (q.state !== state) throw new Error('The connection response did not match this request. Try connecting again.');
         if (q.error) throw new Error(String(q.error));
-        accountId = String(q.account);
+        if (typeof q.account !== 'string') throw new Error('The connection was not completed.');
+        accountId = q.account;
       }
       return (await this.listAccounts()).find((a) => a.id === accountId) ?? null;
     },

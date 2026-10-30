@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "strict": true, "target": "ES2022", "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext", "moduleResolution": "bundler", "allowImportingTsExtensions": true,
+    "noEmit": true, "skipLibCheck": true,
+    "paths": { "@supabase/supabase-js": ["./node_modules/@supabase/supabase-js/dist/index.d.mts"] }
+  },
+  "include": ["supabase/functions/api/**/*.ts"]
+}

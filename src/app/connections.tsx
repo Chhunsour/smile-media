@@ -16,7 +16,7 @@ export default function Connections() {
       <NavHeader title="Connected accounts" />
       <ScrollView contentContainerClassName="gap-3 px-5 pb-14" showsVerticalScrollIndicator={false}>
         <Text variant="footnote" tone="muted" className="mb-1">
-          Connect once and every Page, profile and channel you manage becomes a destination in the composer.
+          Connect an account to see destinations you are authorized to publish to. Select destinations in the composer.
         </Text>
         {PLATFORM_ORDER.map((p) => (
           <PlatformCard key={p} platform={p} connection={connections.find((c) => c.platform === p)} />
@@ -48,9 +48,9 @@ function PlatformCard({ platform, connection }: { platform: PlatformId; connecti
           style: 'destructive',
           onPress: async () => {
             setBusy(true);
-            await disconnect(c.id);
+            const disconnected = await disconnect(c.id);
             setBusy(false);
-            toast(`${p.name} disconnected`, 'info');
+            if (disconnected) toast(`${p.name} disconnected`, 'info');
           },
         },
       ],
@@ -71,7 +71,7 @@ function PlatformCard({ platform, connection }: { platform: PlatformId; connecti
             <View className="flex-row items-center gap-1 rounded-full bg-success/10 px-2.5 py-1">
               <Icon name="checkmark-circle" size={13} tone="success" />
               <Text variant="caption" tone="success" className="font-semibold">
-                Active
+                {connection.status === 'expired' ? 'Reconnect needed' : 'Active'}
               </Text>
             </View>
           ) : (
@@ -100,6 +100,7 @@ function PlatformCard({ platform, connection }: { platform: PlatformId; connecti
                   </View>
                 </View>
               ))}
+              <Button title="Reconnect" size="sm" loading={busy} onPress={onConnect} />
               <Press
                 onPress={() => onDisconnect(connection)}
                 disabled={busy}

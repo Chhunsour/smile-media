@@ -111,9 +111,11 @@ const recoverInterrupted = (p: Post): Post =>
 
 /** Reload posts and accounts from the backend. Keeps local in-flight publishes. */
 export async function refresh() {
-  if (!get().user) return;
+  const owner = get().user?.id;
+  if (!owner) return;
   try {
     const [posts, accounts] = await Promise.all([services.database.listPosts(), services.publishing.listAccounts()]);
+    if (get().user?.id !== owner) return;
     const local = new Map(get().posts.filter((p) => p.status === 'publishing').map((p) => [p.id, p]));
     set({ posts: posts.map((p) => local.get(p.id) ?? recoverInterrupted(p)), accounts });
   } catch (e) {
@@ -156,7 +158,13 @@ export async function signInWith(provider: 'apple' | 'google') {
 
 export async function signOut() {
   await services.auth.signOut();
-  set({ user: null, posts: [], accounts: [], draft: emptyDraft() });
+  set({ user: null, posts: [], accounts: [], draft: emptyDraft(), templates: defaultTemplates, settings: { ...get().settings, lastPageIds: [] } });
+}
+
+export async function deleteAccount() {
+  if (!services.auth.deleteAccount) throw new Error('Account deletion is not available.');
+  await services.auth.deleteAccount();
+  set({ user: null, posts: [], accounts: [], draft: emptyDraft(), templates: defaultTemplates, settings: defaultSettings });
 }
 
 /* ───────────── Composer ───────────── */
@@ -232,9 +240,11 @@ function patchDestination(postId: string, pageId: string, patch: Partial<PostDes
 
 /** Upload local media, compute per-page payloads, save. Returns the stored post. */
 async function store(id: string) {
+  const owner = get().user?.id;
   const post = get().posts.find((p) => p.id === id);
   if (!post) throw new Error('Post not found.');
   const media = await Promise.all(post.media.map((m) => services.storage.upload(m)));
+  if (get().user?.id !== owner) throw new Error('Your session changed.');
   const pages = allPages(get().accounts);
   const payloads = Object.fromEntries(
     post.destinations.flatMap((d) => {
@@ -303,6 +313,7 @@ const FAIL_RATE: Record<FailureMode, number> = { off: 0, sometimes: 0.25, always
 
 /** Publishes every unpublished destination, or just `only`. Safe to call while others are in flight. */
 export async function publish(postId: string, only?: string[]) {
+  const owner = get().user?.id;
   const post = get().posts.find((p) => p.id === postId);
   if (!post) return;
   const ids = only ?? post.destinations.filter((d) => d.status === 'pending' || d.status === 'failed').map((d) => d.pageId);
@@ -315,7 +326,7 @@ export async function publish(postId: string, only?: string[]) {
   }));
 
   const fail = (pageId: string, e: unknown) =>
-    patchDestination(postId, pageId, { status: 'failed', progress: undefined, result: { status: 'failed', error: { message: message(e), retryable: true } } });
+    get().user?.id === owner && patchDestination(postId, pageId, { status: 'failed', progress: undefined, result: { status: 'failed', error: { message: message(e), retryable: true } } });
 
   let saved: Post | undefined;
   try {
@@ -324,6 +335,7 @@ export async function publish(postId: string, only?: string[]) {
     ids.forEach((id) => fail(id, `Upload failed: ${message(e)}`));
   }
 
+  if (get().user?.id !== owner) return;
   if (saved) {
     const current = saved;
     await services.scheduling.cancel(postId).catch(() => {});
@@ -339,8 +351,9 @@ export async function publish(postId: string, only?: string[]) {
           const content = resolveContent(current, page.platform);
           const result = await services.publishing.publish(
             { postId, page, content, payload: current.payloads?.[pageId] ?? {} },
-            (progress) => patchDestination(postId, pageId, { progress }),
+            (progress) => { if (get().user?.id === owner) patchDestination(postId, pageId, { progress }); },
           );
+          if (get().user?.id !== owner) return;
           patchDestination(postId, pageId, { status: result.status, progress: result.status === 'published' ? 1 : undefined, result });
         } catch (e) {
           fail(pageId, e);
@@ -349,6 +362,7 @@ export async function publish(postId: string, only?: string[]) {
     );
   }
 
+  if (get().user?.id !== owner) return;
   const done = get().posts.find((p) => p.id === postId);
   if (!done || done.destinations.some((d) => d.status === 'publishing')) return;
   const failed = done.destinations.filter((d) => d.status === 'failed').length;
@@ -388,11 +402,12 @@ export function deletePost(id: string) {
 
 /** Runs the platform's connect flow. Resolves false if it was cancelled or failed (failures toast). */
 export async function connect(platform: PlatformId) {
+  const owner = get().user?.id;
   const account = await services.publishing.connect(platform).catch((e) => {
     toast(message(e), 'error');
     return null;
   });
-  if (!account) return false;
+  if (!account || get().user?.id !== owner) return false;
   set((s) => ({ accounts: [...s.accounts.filter((a) => a.id !== account.id), account] }));
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   return true;
@@ -403,7 +418,7 @@ export async function disconnect(accountId: string) {
     await services.publishing.disconnect(accountId);
   } catch (e) {
     toast(message(e), 'error');
-    return;
+    return false;
   }
   set((s) => {
     const gone = new Set(s.accounts.find((a) => a.id === accountId)?.pages.map((p) => p.id));
@@ -412,6 +427,7 @@ export async function disconnect(accountId: string) {
       settings: { ...s.settings, lastPageIds: s.settings.lastPageIds.filter((id) => !gone.has(id)) },
     };
   });
+  return true;
 }
 
 export function setSettings(patch: Partial<Settings>) {

@@ -147,7 +147,7 @@ export function FinalCTA() {
 const footerLinks: [string, [string, string][]][] = [
   ["Product", [["Features", "/features/"], ["Platforms", "/platforms/"], ["Pricing", "/pricing/"], ["Try in browser", "/app/"]]],
   ["Resources", [["FAQ", "/faq/"], ["Get the app", "/download/"], ["llms.txt", "/llms.txt"]]],
-  ["Legal", [["Privacy", "/privacy/"], ["Terms", "/terms/"]]],
+  ["Legal", [["Privacy", "/privacy/"], ["Data deletion", "/data-deletion/"], ["Terms", "/terms/"]]],
 ];
 export function Footer() {
   return <footer className="mt-16 bg-night text-white">
