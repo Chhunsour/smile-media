@@ -63,7 +63,7 @@ try {
   }
   await symlink(dependencies,path.join(temporary,'node_modules'),'dir');
   await patch('metro.config.js',text => text.replace('module.exports = withNativeWind',`const config = getDefaultConfig(__dirname);\nconfig.watchFolders = [...(config.watchFolders || []), ${JSON.stringify(dependencies)}];\nconfig.resolver.nodeModulesPaths = [${JSON.stringify(dependencies)}];\nmodule.exports = withNativeWind`).replace('withNativeWind(getDefaultConfig(__dirname),','withNativeWind(config,'));
-  await patch('tailwind.config.js',text => text.replace('module.exports = {',"module.exports = {\n  darkMode: 'class',"));
+  await patch('tailwind.config.js',text => /\bdarkMode\s*:/.test(text) ? text : text.replace('module.exports = {',"module.exports = {\n  darkMode: 'class',"));
   // Delivered demo identities are fictional. Source files in the repository stay unchanged.
   const replacements = [['\u0041\u0063\u006d\u0065','Prism'],['\u0061\u0063\u006d\u0065','prism'],[String.fromCharCode(65,108,101,120,32,82,105,118,101,114,97),'Creator'],[String.fromCharCode(97,108,101,120,64,101,120,97,109,112,108,101,46,99,111,109),'demo@example.invalid'],['outpost:demo:','multipostly:browser-demo:v1:'],['Demo mode — nothing leaves this device','Demo mode — no real posts or account connections'],["name: 'outpost'","name: 'multipostly:browser-demo:v1'"]];
   for(const file of await walk(path.join(temporary,'src'))) {

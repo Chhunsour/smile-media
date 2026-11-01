@@ -138,6 +138,8 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
       META_APP_SECRET: 'test-secret',
       TOKEN_ENCRYPTION_KEY: b64url(new Uint8Array(32).fill(9)),
       OAUTH_REDIRECT_ALLOWLIST: 'outpost://oauth/callback',
+      PUBLISH_MODE: 'controlled',
+      PUBLISH_USER_ALLOWLIST: U,
     };
     (globalThis as any).Deno = { env: { get: (k: string) => config[k] } };
     const jwt = (u: string, s: string) => `e30.${b64url(new TextEncoder().encode(JSON.stringify({ sub: u, session_id: s })))}.test`;
@@ -171,7 +173,7 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
       );
     const capabilities = await call({ action: 'capabilities' });
     assert.equal(capabilities.status, 200);
-    assert.equal((await capabilities.json()).schemaVersion, '2026-10-30.security.1');
+    assert.equal((await capabilities.json()).schemaVersion, '2026-11-01.security.2');
     let graphWrites = 0;
     const original = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
@@ -331,6 +333,81 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
     assert.equal((await (await handler(new Request(response.url))).json()).status, 'completed');
     assert.equal((await request()).status, 200);
     assert.equal((await q('select count(*) c from auth.users'))[0].c, 2);
+  });
+  await t.test('deletion survives Auth success followed by a failed completion receipt', async () => {
+    const D = '44444444-4444-4444-8444-444444444444';
+    await q('insert into auth.users(id) values($1)', [D]);
+    await q('select public.save_connection($1,$2,$3,$4)', [D, 'facebook', '9',
+      JSON.stringify({ name: 'Receipt recovery fixture', pages: [{ external_id: '98', name: 'Page', kind: 'page' }], tokens: [] })]);
+    const config: Record<string, string> = { META_APP_SECRET: 'test-secret', SUPABASE_URL: 'https://test.supabase.co', CRON_SECRET: 'receipt-test' };
+    (globalThis as any).Deno = { env: { get: (key: string) => config[key] } };
+    let failReceipt = true, authCalls = 0;
+    const auth = { admin: { deleteUser: async (user: string) => {
+      authCalls++;
+      if (authCalls === 1) { await q('delete from auth.users where id=$1', [user]); return { error: null }; }
+      return { error: authCalls === 2 ? { code: 'unexpected_failure', status: 503 } : { code: 'user_not_found', status: 404 } };
+    } } };
+    const base = databaseClient(db, auth, { from: () => ({ list: async () => ({ data: [] }) }) });
+    const handler = createHandler({ ...base, from(table: string) {
+      const chain = base.from(table);
+      return table === 'deletion_receipts' && failReceipt ? { ...chain, upsert() {
+        failReceipt = false;
+        return Promise.resolve({ data: null, error: { message: 'receipt temporarily unavailable' } });
+      } } : chain;
+    } } as any);
+    const data = b64url(new TextEncoder().encode(JSON.stringify({ algorithm: 'HMAC-SHA256', user_id: '9', issued_at: Math.floor(Date.now() / 1000) })));
+    const signed = `${b64url(await hmac('test-secret', data))}.${data}`;
+    const response = await (await handler(new Request('https://test/api/data-deletion', {
+      method: 'POST', body: new URLSearchParams({ signed_request: signed }),
+    }))).json();
+    assert.equal((await q('select count(*) n from auth.users where id=$1', [D]))[0].n, 0);
+    assert.equal((await q('select count(*) n from public.deletion_jobs where user_id=$1', [D]))[0].n, 1);
+    assert.equal((await (await handler(new Request(response.url))).json()).status, 'pending');
+    const page = await handler(new Request(response.url, { headers: { Accept: 'text/html' } }));
+    assert.match(page.headers.get('content-type')!, /text\/html/);
+    assert.match(await page.text(), /Deletion in progress/);
+    const cron = () => handler(new Request('https://test/api', {
+      method: 'POST', headers: { 'x-cron-secret': 'receipt-test' }, body: '{"action":"cron"}',
+    }));
+    await cron();
+    assert.equal((await (await handler(new Request(response.url))).json()).status, 'pending');
+    await cron();
+    assert.equal(authCalls, 3);
+    assert.equal((await q('select count(*) n from public.deletion_jobs where user_id=$1', [D]))[0].n, 0);
+    assert.equal((await (await handler(new Request(response.url))).json()).status, 'completed');
+    const completedPage = await handler(new Request(response.url, { headers: { Accept: 'text/html' } }));
+    assert.match(await completedPage.text(), /Deletion completed/);
+    const unknown = await handler(new Request(`https://test/api/deletion-status?code=${'0'.repeat(64)}`, { headers: { Accept: 'text/html' } }));
+    assert.equal(unknown.status, 404);
+    assert.match(await unknown.text(), /not found/);
+  });
+  await t.test('scheduler rejects empty, duplicate and missing destinations without reporting a publication', async () => {
+    const config: Record<string, string> = { CRON_SECRET: 'scheduler-test', PUBLISH_MODE: 'controlled', PUBLISH_USER_ALLOWLIST: V };
+    (globalThis as any).Deno = { env: { get: (key: string) => config[key] } };
+    const handler = createHandler(databaseClient(db, {}, {}));
+    for (const [index, destinations] of [[], [{ pageId: 'same' }, { pageId: 'same' }], [{ pageId: '' }]].entries()) {
+      const id = `invalid-schedule-${index}`;
+      await q('insert into public.posts(id,user_id,organization_id,status,scheduled_at,data) values($1,$2,$2,$3,now()-interval \'1 minute\',$4)',
+        [id, V, 'scheduled', JSON.stringify({ id, status: 'scheduled', destinations, scheduledAt: '2026-10-30T00:00:00Z' })]);
+      config.PUBLISH_USER_ALLOWLIST = U;
+      const excluded = await handler(new Request('https://test/api', {
+        method: 'POST', headers: { 'x-cron-secret': 'scheduler-test' }, body: '{"action":"cron"}',
+      }));
+      assert.equal(excluded.status, 200);
+      assert.equal((await q('select status from public.posts where id=$1', [id]))[0].status, 'scheduled');
+      config.PUBLISH_USER_ALLOWLIST = V;
+      const response = await handler(new Request('https://test/api', {
+        method: 'POST', headers: { 'x-cron-secret': 'scheduler-test' }, body: '{"action":"cron"}',
+      }));
+      assert.equal(response.status, 200);
+      const [post] = await q('select status,scheduled_at,data from public.posts where id=$1', [id]);
+      assert.equal(post.status, 'failed');
+      assert.equal(post.data.status, 'failed');
+      assert.equal(post.scheduled_at, null);
+      assert.equal(post.data.scheduledAt, null);
+      assert.equal((await q('select count(*) n from public.publish_attempts where post_id=$1', [id]))[0].n, 0);
+      await q('delete from public.posts where id=$1', [id]);
+    }
   });
   await t.test('disconnect is idempotent, deletes stale tokens and never touches another user', async () => {
     await q('select public.disconnect_connection($1,$2)', [U, `${V}:facebook:7`]);

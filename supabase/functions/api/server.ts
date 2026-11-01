@@ -46,6 +46,16 @@ export function createHandler(admin: SupabaseClient) {
     return r.data;
   };
   const rpc = async (name: string, args: Record<string, unknown>) => must(await admin.rpc(name, args));
+  const canPublish = (user: string) => Deno.env.get('PUBLISH_MODE') === 'public' ||
+    (Deno.env.get('PUBLISH_MODE') === 'controlled' &&
+      (Deno.env.get('PUBLISH_USER_ALLOWLIST') ?? '').split(',').map(value => value.trim()).includes(user));
+  const requirePublishing = (user: string) => {
+    if (!canPublish(user)) {
+      const controlled = Deno.env.get('PUBLISH_MODE') === 'controlled';
+      throw new SafeError(controlled ? 'Publishing is limited to approved test accounts.' : 'Publishing is temporarily disabled.',
+        controlled ? 'TEST_ACCOUNT_REQUIRED' : 'PUBLISHING_DISABLED', controlled ? 403 : 409);
+    }
+  };
 
   async function saveConnection(user: string, platform: Platform, c: Connected, version: number) {
     const id = accountKey(user, platform, c.externalId);
@@ -102,6 +112,7 @@ export function createHandler(admin: SupabaseClient) {
     return (fresh ?? token).access_token;
   }
   async function publishDestination(user: string, postId: string, pageId: string) {
+    requirePublishing(user);
     const claim = await rpc('claim_publish', { p_user: user, p_post: postId, p_page: pageId });
     if ('cached' in claim) return claim.cached;
     if (claim.busy) {
@@ -155,6 +166,7 @@ export function createHandler(admin: SupabaseClient) {
         await admin.from('social_accounts').select('id').eq('id', page.account_id).eq('user_id', user).eq('status', 'active').maybeSingle(),
       );
       if (!active) throw new SafeError('This account was disconnected.');
+      requirePublishing(user);
       result = await publish(page.platform, prepared as Record<string, unknown>, token, page.handle);
     } catch (e) {
       result = { status: 'failed', error: publicError(e) };
@@ -176,8 +188,12 @@ export function createHandler(admin: SupabaseClient) {
       if (files.some((f) => !f.id || f.name.includes('/'))) throw new Error('Unexpected media layout');
       must(await admin.storage.from('media').remove(files.map((f) => `${user}/${f.name}`)));
     }
-    must(await admin.auth.admin.deleteUser(user));
+    const deleted = await admin.auth.admin.deleteUser(user);
+    // The Auth delete may have succeeded before a response/receipt failure. Only the
+    // documented not-found code is an idempotent success; other failures stay queued.
+    if (deleted.error && deleted.error.code !== 'user_not_found') throw new Error('Account deletion failed');
     must(await admin.from('deletion_receipts').upsert({ code_hash: codeHash }));
+    must(await admin.from('deletion_jobs').delete().eq('user_id', user).eq('code_hash', codeHash));
   }
   async function scheduler() {
     must(await admin.from('oauth_states').delete().lte('created_at', new Date(Date.now() - 600_000).toISOString()));
@@ -188,20 +204,26 @@ export function createHandler(admin: SupabaseClient) {
         await deleteUserData(job.user_id, job.code_hash);
       } catch { /* Leave the job pending for the next cron; never log credentials. */ }
     }
+    // Deletion cleanup continues even when a rollout has not enabled publishing.
+    if (!['controlled', 'public'].includes(Deno.env.get('PUBLISH_MODE') ?? '')) return 0;
     const due = must(
       await admin.from('posts').select('*').eq('status', 'scheduled').lte('scheduled_at', new Date().toISOString()).limit(20),
     ) ?? [];
     for (const row of due) {
+      if (!canPublish(row.user_id)) continue;
       const claimed = must(
         await admin.from('posts').update({ status: 'publishing' }).eq('id', row.id).eq('user_id', row.user_id).eq('status', 'scheduled')
           .select('id'),
       ) ?? [];
       if (!claimed.length) continue;
       if (
-        !Array.isArray(row.data?.destinations) ||
-        row.data.destinations.some((d: { pageId: string; status: string }) => !d || typeof d.pageId !== 'string')
+        !Array.isArray(row.data?.destinations) || !row.data.destinations.length ||
+        row.data.destinations.some((d: { pageId: string; status: string }) => !d || typeof d.pageId !== 'string' || !d.pageId) ||
+        new Set(row.data.destinations.map((d: { pageId: string }) => d.pageId)).size !== row.data.destinations.length
       ) {
-        must(await admin.from('posts').update({ status: 'failed' }).eq('id', row.id).eq('user_id', row.user_id));
+        must(await admin.from('posts').update({
+          status: 'failed', scheduled_at: null, data: { ...row.data, status: 'failed', scheduledAt: null },
+        }).eq('id', row.id).eq('user_id', row.user_id));
         continue;
       }
       for (const d of row.data.destinations) {
@@ -291,7 +313,20 @@ export function createHandler(admin: SupabaseClient) {
         const row = must(await admin.from('deletion_receipts').select('completed_at').eq('code_hash', await hash(code)).maybeSingle());
         const pending = must(await admin.from('deletion_jobs').select('user_id').eq('code_hash', await hash(code))) ?? [];
         const completed = Boolean(row) && !pending.length;
-        return reply({ status: completed ? 'completed' : 'pending', ...(completed ? { completedAt: row?.completed_at } : {}) });
+        const known = Boolean(row) || pending.length > 0;
+        const status = completed ? 'completed' : known ? 'pending' : 'not_found';
+        if (req.headers.get('accept')?.includes('text/html')) {
+          const title = completed ? 'Deletion completed' : known ? 'Deletion in progress' : 'Confirmation code not found';
+          const description = completed
+            ? 'Your MultiPostly account data and uploaded media have been removed. Posts already published to social networks remain on those networks.'
+            : known ? 'Your deletion request is recorded. Cleanup is still in progress. You can return to this page to check again.'
+            : 'This confirmation code was not found or its status record has expired. This page cannot confirm a deletion for this code.';
+          return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MultiPostly — ${title}</title><style>body{font:18px/1.6 system-ui,sans-serif;max-width:44rem;margin:4rem auto;padding:0 1.5rem;color:#222}code{overflow-wrap:anywhere;font-size:.8em}h1{line-height:1.2}</style><main><p>MultiPostly data deletion</p><h1>${title}</h1><p>${description}</p><p>Confirmation code: <code>${code}</code></p></main></html>`, {
+            status: known ? 200 : 404,
+            headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" },
+          });
+        }
+        return reply({ status, ...(completed ? { completedAt: row?.completed_at } : {}) }, known ? 200 : 404);
       }
       if (route === 'deauthorize' || route === 'data-deletion') {
         if (req.method !== 'POST') throw new SafeError('Method not allowed.', 'METHOD_NOT_ALLOWED', 405);
@@ -379,7 +414,7 @@ export function createHandler(admin: SupabaseClient) {
         throw new SafeError('Sign in again.', 'SESSION_REVOKED', 401);
       }
       switch (body.action) {
-        case 'capabilities': return reply({ schemaVersion: '2026-10-30.security.1', publishingProvider: 'meta-graph-direct' });
+        case 'capabilities': return reply({ schemaVersion: '2026-11-01.security.2', publishingProvider: 'meta-graph-direct' });
         case 'connect': {
           validPlatform(body.platform);
           if (body.platform === 'telegram') {

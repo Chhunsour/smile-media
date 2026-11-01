@@ -1,5 +1,7 @@
 # MultiPostly production and Meta access status — 1 November 2026
 
+**Later continuation correction:** current official Meta documentation says separate Access Verification was retired on 9 October 2026; the legacy dashboard deadline below conflicts with that guidance. The preserved Business Verification tab has since reached “Select your business.” See [production-readiness-2026-11-01.md](production-readiness-2026-11-01.md) for the latest checklist, state and local fixes. Earlier observations below are retained as historical evidence.
+
 **Public launch: NO.** Browser inspection confirms that Business Verification, separate Tech Provider Access Verification, App Review and app publication are incomplete. Local security work is ahead of the hosted backend. Authentication or a healthy Supabase project does not establish production publishing access.
 
 ## A. Current application state

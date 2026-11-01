@@ -6,10 +6,11 @@ import { Alert } from 'react-native';
 import 'react-native-url-polyfill/auto';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/app';
-import type { MediaAsset, Post, PublishResult, SocialAccount, User } from '@/models';
+import type { MediaAsset, PublishResult, SocialAccount, User } from '@/models';
 
 import type { Services } from './types';
 import { sessionStorage } from './session-storage';
+import { restorePost } from './post-state';
 
 /*
  * Live providers backed by Supabase: Auth, Postgres (RLS), Storage and the `api` Edge Function
@@ -33,7 +34,7 @@ async function api<T>(body: Record<string, unknown>): Promise<T> {
 let backendCheck: Promise<void> | undefined;
 async function ensureBackend() {
   backendCheck ??= api<{ schemaVersion: string }>({ action: 'capabilities' }).then(result => {
-    if (result.schemaVersion !== '2026-10-30.security.1') throw new Error('Backend version mismatch.');
+    if (result.schemaVersion !== '2026-11-01.security.2') throw new Error('Backend version mismatch.');
   }).catch(() => {
     backendCheck = undefined;
     throw new Error('MultiPostly could not verify this app version with the service. Check your connection and try again later.');
@@ -135,7 +136,7 @@ export const supabaseServices: Services = {
   database: {
     async listPosts() {
       await ensureBackend();
-      const rows = must(await supabase.from('posts').select('data').order('updated_at', { ascending: false }));
+      const rows = must(await supabase.from('posts').select('id,data,status,scheduled_at').order('updated_at', { ascending: false }));
       const attempts = must(await supabase.from('publish_attempts').select('post_id,page_id,status,result'));
       const renew = async (uri: string) => {
         try {
@@ -149,11 +150,7 @@ export const supabaseServices: Services = {
         } catch { return uri; }
       };
       return Promise.all((rows ?? []).map(async (r) => {
-        const post = r.data as Post;
-        post.destinations = post.destinations.map(d => {
-          const attempt = (attempts ?? []).find(a => a.post_id === post.id && a.page_id === d.pageId);
-          return attempt?.result ? { ...d, status: attempt.result.status, result: attempt.result } : d;
-        });
+        const post = restorePost(r, attempts ?? []);
         post.media = await Promise.all(post.media.map(async m => ({ ...m, uri: await renew(m.uri), thumb: m.thumb ? await renew(m.thumb) : undefined })));
         return post;
       }));

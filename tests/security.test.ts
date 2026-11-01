@@ -272,6 +272,45 @@ test('maintenance gate rejects API, cron and callbacks before accessing the data
     }
   } finally { delete env.MAINTENANCE_MODE; }
 });
+test('publication is disabled by default and controlled mode rejects users outside its exact allowlist', async () => {
+  const user = '11111111-1111-4111-8111-111111111111';
+  const jwt = `e30.${b64url(new TextEncoder().encode(JSON.stringify({ session_id: 'session' })))}.test`;
+  let claims = 0;
+  const handler = createHandler({
+    auth: { getUser: async () => ({ data: { user: { id: user } } }) },
+    rpc: async (name: string) => { if (name === 'session_active') return { data: true }; claims++; throw new Error('Must not claim publication'); },
+    from: () => ({ select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ data: { id: 'owned' } }) }),
+  } as any);
+  try {
+    for (const [mode, allowlist, status, code] of [
+      ['', '', 409, 'PUBLISHING_DISABLED'], ['disabled', user, 409, 'PUBLISHING_DISABLED'],
+      ['typo', user, 409, 'PUBLISHING_DISABLED'], ['controlled', '', 403, 'TEST_ACCOUNT_REQUIRED'],
+      ['controlled', '*', 403, 'TEST_ACCOUNT_REQUIRED'], ['controlled', 'another-user', 403, 'TEST_ACCOUNT_REQUIRED'],
+    ] as const) {
+      env.PUBLISH_MODE = mode; env.PUBLISH_USER_ALLOWLIST = allowlist;
+      const response = await handler(new Request('https://test/api', { method: 'POST', headers: { Authorization: `Bearer ${jwt}` },
+        body: '{"action":"publish","postId":"post","pageId":"page"}' }));
+      assert.equal(response.status, status);
+      assert.equal((await response.json()).error.code, code);
+    }
+    assert.equal(claims, 0);
+  } finally { delete env.PUBLISH_MODE; delete env.PUBLISH_USER_ALLOWLIST; }
+});
+test('disabled cron still processes housekeeping but never claims due posts', async () => {
+  env.CRON_SECRET = 'disabled-test';
+  const touched: string[] = [];
+  const handler = createHandler({ from(table: string) {
+    touched.push(table);
+    assert.notEqual(table, 'posts');
+    return { delete() { return this; }, lte: async () => ({ data: [] }), select() { return this; }, limit: async () => ({ data: [] }) };
+  } } as any);
+  try {
+    const response = await handler(new Request('https://test/api', { method: 'POST', headers: { 'x-cron-secret': 'disabled-test' }, body: '{"action":"cron"}' }));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).processed, 0);
+    assert(touched.includes('deletion_jobs'));
+  } finally { delete env.CRON_SECRET; }
+});
 test('HTTP handler rejects unauthenticated actions, bad methods, missing cron config and invalid state', async () => {
   const handler = createHandler({
     auth: { getUser: async () => ({ data: { user: null }, error: null }) },

@@ -76,7 +76,9 @@ alter table public.publish_attempts enable row level security;
 create table public.deletion_receipts (code_hash text primary key, completed_at timestamptz not null default now());
 alter table public.deletion_receipts enable row level security;
 
-create table public.deletion_jobs (user_id uuid primary key references auth.users(id) on delete cascade,code_hash text not null,created_at timestamptz not null default now());
+-- The job must survive Auth deletion until its completion receipt is durable.
+-- A cascade here would lose recovery work if the receipt write fails after Auth succeeds.
+create table public.deletion_jobs (user_id uuid primary key,code_hash text not null,created_at timestamptz not null default now());
 alter table public.deletion_jobs enable row level security;
 revoke all on public.deletion_jobs from public,anon,authenticated;
 grant all on public.deletion_jobs to service_role;

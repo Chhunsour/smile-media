@@ -83,13 +83,13 @@ export function databaseClient(db: PGlite, auth: any, storage: any) {
               if (op === 'delete') sql = `delete from public.${ident(table)}${where}${returning ? ' returning *' : ''}`;
               if (op === 'update') {
                 sql = `update public.${ident(table)} set ${
-                  Object.entries(value).map(([k, v]) => `${ident(k)}=${param(typeof v === 'object' ? JSON.stringify(v) : v)}`).join(',')
+                  Object.entries(value).map(([k, v]) => `${ident(k)}=${param(v !== null && typeof v === 'object' ? JSON.stringify(v) : v)}`).join(',')
                 }${where}${returning ? ' returning *' : ''}`;
               }
               if (op === 'insert' || op === 'upsert') {
                 const keys = Object.keys(value);
                 sql = `insert into public.${ident(table)}(${keys.map(ident).join(',')}) values(${
-                  keys.map((k) => param(typeof value[k] === 'object' ? JSON.stringify(value[k]) : value[k])).join(',')
+                  keys.map((k) => param(value[k] !== null && typeof value[k] === 'object' ? JSON.stringify(value[k]) : value[k])).join(',')
                 })${op === 'upsert' ? ' on conflict do nothing' : ''}${returning ? ' returning *' : ''}`;
               }
               const r = await db.query(sql, params);

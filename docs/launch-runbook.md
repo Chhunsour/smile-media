@@ -1,6 +1,6 @@
 # MultiPostly launch gate — 30 October 2026
 
-For the 1 November browser audit, current Meta Business/Tech Provider/App Review gates, and subsequent local fixes, see [meta-access-2026-11-01.md](meta-access-2026-11-01.md). The production inventory and backup evidence below remain dated observations.
+Use [production-readiness-2026-11-01.md](production-readiness-2026-11-01.md) for the current rollout proposal. It corrects the retired Access Verification requirement, revises deletion-job recovery, pairs client/API contract `2026-11-01.security.2`, and keeps publishing disabled by default. The sequence, inventory and backup evidence below remain dated historical observations and must not be executed unchanged.
 
 **NO-GO for a public production launch.** Local preparation continues from `cf18c74`. The security migration and API in that commit have not been deployed. This run made no production schema, secret, cron, deployment, ownership or verification changes, and published no Facebook posts.
 
