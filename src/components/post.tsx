@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { ActionSheetIOS, Alert, Linking, Platform, Share, StyleSheet, View } from 'react-native';
 
 import { ago, compact, countdown, dayLabel, duration, postWhen, time } from '@/lib/format';
+import { canRetryDestination } from '@/lib/publishing-state';
 import { PLATFORM_ORDER, PLATFORMS } from '@/platforms';
 import { deletePost, duplicatePost, retry, startCompose, toast } from '@/lib/store';
 import type { MediaAsset as Media, PlatformId, Post, PostDestination as Target } from '@/models';
@@ -60,7 +61,7 @@ export function postActions(post: Post) {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   const actions: [string, () => void][] = [
     ...(post.status === 'draft' || post.status === 'scheduled' ? [['Edit', () => startCompose({ postId: post.id })] as [string, () => void]] : []),
-    ...(post.status === 'failed' ? [['Retry failed channels', () => retry(post.id)] as [string, () => void]] : []),
+    ...(post.destinations.some(canRetryDestination) ? [['Retry failed channels', () => retry(post.id)] as [string, () => void]] : []),
     ['Duplicate', () => duplicatePost(post.id)],
     ['Share caption', () => sharePost(post)],
     ['Delete', () => confirmDelete(post)],
@@ -210,7 +211,7 @@ export function PostRow({ post, onPress }: { post: Post; onPress?: () => void })
         {post.status === 'publishing' ? <ProgressBar value={progressOf(post)} className="mt-0.5" /> : null}
         {post.status === 'failed' && failed.length ? (
           <Text variant="caption" tone="danger" numberOfLines={1}>
-            Failed on {failed.join(', ')} · tap to retry
+            Needs attention on {failed.join(', ')} · tap for details
           </Text>
         ) : null}
       </View>
@@ -352,9 +353,9 @@ export function TargetRow({
           </Text>
         )}
       </View>
-      {target.status === 'failed' ? (
+      {canRetryDestination(target) ? (
         <Button title="Retry" icon="refresh" size="sm" onPress={() => retry(postId, target.pageId)} />
-      ) : target.status === 'published' && target.result?.url ? (
+      ) : target.result?.url ? (
         <IconButton
           icon="open-outline"
           label={`Open on ${p.name}`}
@@ -362,6 +363,8 @@ export function TargetRow({
           size={18}
           onPress={() => Linking.openURL(target.result!.url!).catch(() => toast('Couldn’t open the link', 'error'))}
         />
+      ) : target.status === 'failed' ? (
+        <Icon name="alert-circle-outline" size={24} tone="danger" />
       ) : target.status === 'published' ? (
         <Icon name="checkmark-circle" size={24} tone="success" />
       ) : target.status === 'publishing' ? (

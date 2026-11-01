@@ -3,6 +3,7 @@
 const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 
 module.exports = {
+  darkMode: 'class',
   content: ['./src/**/*.{ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {

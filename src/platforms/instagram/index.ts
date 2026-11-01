@@ -22,10 +22,15 @@ const instagram: PlatformAdapter = {
         { value: 'story', label: 'Story' },
       ],
     },
-    { key: 'firstComment', label: 'First comment', type: 'text', placeholder: 'Add hashtags or a link…', max: 2200 },
   ],
-  validate: ({ caption }) =>
-    (caption.match(/#\w+/g)?.length ?? 0) > 30 ? [{ level: 'error', message: 'Instagram allows up to 30 hashtags.' }] : [],
+  validate: ({ caption, media, options }) => [
+    ...((caption.match(/#\w+/g)?.length ?? 0) > 30
+      ? [{ level: 'error' as const, message: 'Instagram allows up to 30 hashtags.' }] : []),
+    ...(options.format === 'reel' && (media.length !== 1 || media[0]?.type !== 'video')
+      ? [{ level: 'error' as const, message: 'An Instagram Reel needs exactly one video.' }] : []),
+    ...(options.format === 'story' && media.length !== 1
+      ? [{ level: 'error' as const, message: 'An Instagram Story needs exactly one image or video.' }] : []),
+  ],
   // POST /{ig-user-id}/media per item (children for CAROUSEL), then POST /{ig-user-id}/media_publish.
   toPayload({ caption, media, options }, page) {
     const single = media.length === 1;
@@ -42,12 +47,11 @@ const instagram: PlatformAdapter = {
       mediaType,
       caption: mediaType === 'STORIES' ? undefined : caption,
       items: media.map((m) => (m.type === 'video' ? { video_url: m.uri } : { image_url: m.uri })),
-      firstComment: options.firstComment || undefined,
     };
   },
   connection: {
     method: 'oauth2',
-    scopes: ['instagram_business_basic', 'instagram_business_content_publish'],
+    scopes: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'],
     serverEnv: ['META_APP_ID', 'META_APP_SECRET'],
     docs: 'https://developers.facebook.com/docs/instagram-platform/content-publishing',
   },

@@ -26,6 +26,7 @@ import {
   useTabSpace,
 } from '@/components/ui';
 import { ago, compact, dayLabel, longDate, time } from '@/lib/format';
+import { canRetryDestination } from '@/lib/publishing-state';
 import { change as changeLabel, dailyReach, delta, engagementRate, inLast, percent, totals } from '@/lib/insights';
 import { PLATFORMS } from '@/platforms';
 import { allPages, type ComposeTool, retry, startCompose, useStore } from '@/lib/store';
@@ -305,13 +306,13 @@ function Attention({ post }: { post: Post }) {
       </View>
       <View className="flex-1">
         <Text variant="footnote" className="font-semibold" numberOfLines={1}>
-          Failed on {names}
+          Needs attention on {names}
         </Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {failed[0]?.result?.error?.message}
         </Text>
       </View>
-      <Button title="Retry" icon="refresh" size="sm" onPress={() => retry(post.id)} />
+      {failed.some(canRetryDestination) ? <Button title="Retry" icon="refresh" size="sm" onPress={() => retry(post.id)} /> : null}
     </Press>
   );
 }

@@ -13,6 +13,7 @@ import { setDemoFailureRate } from '@/services/publishing/demo';
 import { services } from '@/services';
 
 import { plural } from './format';
+import { canRetryDestination, recoverInterrupted } from './publishing-state';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 export type FailureMode = 'off' | 'sometimes' | 'always';
@@ -95,20 +96,6 @@ export const dismissToast = () => set({ toast: null });
 
 /* ───────────── Session & data ───────────── */
 
-/** A publish that was mid-flight when the app was killed can't be resumed; surface it as a retryable failure. */
-const recoverInterrupted = (p: Post): Post =>
-  p.status !== 'publishing'
-    ? p
-    : {
-        ...p,
-        status: 'failed',
-        destinations: p.destinations.map((d) =>
-          d.status === 'publishing'
-            ? { ...d, status: 'failed', progress: undefined, result: { status: 'failed', error: { message: 'Interrupted — the app closed before this finished.', retryable: true } } }
-            : d,
-        ),
-      };
-
 /** Reload posts and accounts from the backend. Keeps local in-flight publishes. */
 export async function refresh() {
   const owner = get().user?.id;
@@ -117,7 +104,7 @@ export async function refresh() {
     const [posts, accounts] = await Promise.all([services.database.listPosts(), services.publishing.listAccounts()]);
     if (get().user?.id !== owner) return;
     const local = new Map(get().posts.filter((p) => p.status === 'publishing').map((p) => [p.id, p]));
-    set({ posts: posts.map((p) => local.get(p.id) ?? recoverInterrupted(p)), accounts });
+    set({ posts: posts.map((p) => local.get(p.id) ?? recoverInterrupted(p, APP_MODE === 'demo')), accounts });
   } catch (e) {
     toast(message(e), 'error');
   }
@@ -316,7 +303,9 @@ export async function publish(postId: string, only?: string[]) {
   const owner = get().user?.id;
   const post = get().posts.find((p) => p.id === postId);
   if (!post) return;
-  const ids = only ?? post.destinations.filter((d) => d.status === 'pending' || d.status === 'failed').map((d) => d.pageId);
+  const ids = post.destinations.filter((d) =>
+    (!only || only.includes(d.pageId)) && (d.status === 'pending' || canRetryDestination(d))
+  ).map((d) => d.pageId);
   if (!ids.length) return;
 
   patchPost(postId, (p) => ({
@@ -325,14 +314,17 @@ export async function publish(postId: string, only?: string[]) {
     destinations: p.destinations.map((d) => (ids.includes(d.pageId) ? { ...d, status: 'publishing', progress: 0, result: undefined } : d)),
   }));
 
-  const fail = (pageId: string, e: unknown) =>
-    get().user?.id === owner && patchDestination(postId, pageId, { status: 'failed', progress: undefined, result: { status: 'failed', error: { message: message(e), retryable: true } } });
+  const fail = (pageId: string, e: unknown, retryable = APP_MODE === 'demo') =>
+    get().user?.id === owner && patchDestination(postId, pageId, { status: 'failed', progress: undefined, result: { status: 'failed', error: {
+      message: retryable ? message(e) : `${message(e)} Publication was not confirmed; check the channel before creating another post.`,
+      retryable,
+    } } });
 
   let saved: Post | undefined;
   try {
     saved = await store(postId);
   } catch (e) {
-    ids.forEach((id) => fail(id, `Upload failed: ${message(e)}`));
+    ids.forEach((id) => fail(id, `Upload failed: ${message(e)}`, true));
   }
 
   if (get().user?.id !== owner) return;
@@ -381,7 +373,8 @@ export async function publish(postId: string, only?: string[]) {
 
 export function retry(postId: string, pageId?: string) {
   const post = get().posts.find((p) => p.id === postId);
-  publish(postId, pageId ? [pageId] : post?.destinations.filter((d) => d.status === 'failed').map((d) => d.pageId));
+  const ids = post?.destinations.filter((d) => canRetryDestination(d) && (!pageId || d.pageId === pageId)).map((d) => d.pageId) ?? [];
+  if (ids.length) void publish(postId, ids);
 }
 
 /** Device-side scheduler (demo only; live mode publishes from the server's cron). */

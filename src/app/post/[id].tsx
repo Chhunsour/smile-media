@@ -19,6 +19,7 @@ import {
   Text,
 } from '@/components/ui';
 import { compact, postWhen, when } from '@/lib/format';
+import { canRetryDestination } from '@/lib/publishing-state';
 import { issuesFor, PLATFORMS } from '@/platforms';
 import { duplicatePost, publish, retry, startCompose, useStore } from '@/lib/store';
 import type { Post } from '@/models';
@@ -37,7 +38,7 @@ export default function PostDetail() {
     );
   }
 
-  const failed = post.destinations.filter((t) => t.status === 'failed');
+  const failed = post.destinations.filter(canRetryDestination);
   const editable = post.status === 'draft' || post.status === 'scheduled';
   const totals = totalsOf(post);
   const whenLabel = post.status === 'scheduled' && post.scheduledAt ? `Goes out ${when(post.scheduledAt)}` : postWhen(post);
@@ -185,6 +186,7 @@ function Hero({ post, label }: { post: Post; label: string }) {
 
 function PrimaryAction({ post, failedCount }: { post: Post; failedCount: number }) {
   if (post.status === 'failed') {
+    if (!failedCount) return null;
     return (
       <Footer>
         <Button title={`Retry ${failedCount} failed`} icon="refresh" onPress={() => retry(post.id)} />

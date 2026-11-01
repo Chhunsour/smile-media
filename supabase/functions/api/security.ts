@@ -121,6 +121,8 @@ type SecurityPayload = {
   igUserId: string;
   items: { video_url?: string; image_url?: string }[];
   mediaType: string;
+  caption?: string;
+  firstComment?: string;
   chat_id: string;
   method: string;
   photo: string;
@@ -168,8 +170,29 @@ export function authorizedPayload(
       p.igUserId !== page.external_id || !Array.isArray(p.items) || !p.items.length || p.items.length > 10 ||
       !['IMAGE', 'CAROUSEL', 'REELS', 'STORIES'].includes(p.mediaType)
     ) throw new SafeError('Invalid Instagram destination or media.');
-    for (const m of p.items) media(m.video_url ?? m.image_url);
-    p.igUserId = page.external_id;
+    if (p.firstComment) {
+      throw new SafeError('Instagram first comments are unavailable. Edit and save this post without a first comment.', 'UNSUPPORTED_OPTION');
+    }
+    if (p.caption !== undefined && (typeof p.caption !== 'string' || p.caption.length > 2200)) {
+      throw new SafeError('Instagram captions must contain at most 2,200 characters.');
+    }
+    const items = p.items.map((m) => {
+      if (!m || typeof m !== 'object' || Boolean(m.video_url) === Boolean(m.image_url)) {
+        throw new SafeError('Each Instagram item must contain exactly one image or video.');
+      }
+      return m.video_url ? { video_url: media(m.video_url) } : { image_url: media(m.image_url) };
+    });
+    if (
+      (p.mediaType === 'CAROUSEL' ? items.length < 2 : items.length !== 1) ||
+      (p.mediaType === 'REELS' && !items[0].video_url) ||
+      (p.mediaType === 'IMAGE' && !items[0].image_url)
+    ) throw new SafeError('The Instagram format does not match its media.');
+    return {
+      igUserId: page.external_id,
+      mediaType: p.mediaType,
+      caption: p.mediaType === 'STORIES' ? undefined : p.caption ?? '',
+      items,
+    };
   } else if (page.platform === 'telegram') {
     if (!['sendMessage', 'sendPhoto', 'sendVideo', 'sendMediaGroup'].includes(p.method)) {
       throw new SafeError('Unsupported Telegram operation.');

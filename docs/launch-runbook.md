@@ -1,5 +1,7 @@
 # MultiPostly launch gate — 30 October 2026
 
+For the 1 November browser audit, current Meta Business/Tech Provider/App Review gates, and subsequent local fixes, see [meta-access-2026-11-01.md](meta-access-2026-11-01.md). The production inventory and backup evidence below remain dated observations.
+
 **NO-GO for a public production launch.** Local preparation continues from `cf18c74`. The security migration and API in that commit have not been deployed. This run made no production schema, secret, cron, deployment, ownership or verification changes, and published no Facebook posts.
 
 The owner's latest instruction is to keep Smile Media paused and MultiPostly resumed. Current project states: `rcfpzphrdjlekldfcjlk` INACTIVE; `pdecqyjanliqocfigkvd` ACTIVE_HEALTHY. Smile Media's home page returns 200 but references the paused backend; its Apple auth-provider route returns 503 `auth_unavailable`, and the paused backend fails DNS resolution. Its database-dependent production services remain affected. Do not resume it or pause another project without a new instruction.

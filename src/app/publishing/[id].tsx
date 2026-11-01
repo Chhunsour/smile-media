@@ -6,6 +6,7 @@ import { openPost, progressOf, TargetRow } from '@/components/post';
 import { Button, Card, Footer, Glow, Gradient, Icon, ProgressBar, Pulse, Text } from '@/components/ui';
 import { plural } from '@/lib/format';
 import { retry, useStore } from '@/lib/store';
+import { canRetryDestination } from '@/lib/publishing-state';
 import { BRAND } from '@/lib/theme';
 
 const ORB = { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center' } as const;
@@ -19,6 +20,7 @@ export default function Publishing() {
   const total = post.destinations.length;
   const published = post.destinations.filter((t) => t.status === 'published').length;
   const failed = post.destinations.filter((t) => t.status === 'failed').length;
+  const retryable = post.destinations.filter(canRetryDestination).length;
   const inFlight = post.destinations.some((t) => t.status === 'publishing' || t.status === 'pending');
   const state = inFlight ? 'publishing' : !failed ? 'done' : published ? 'partial' : 'failed';
 
@@ -26,7 +28,7 @@ export default function Publishing() {
     publishing: ['Publishing…', `${published + failed} of ${plural(total, 'channel')} done`],
     done: ['You’re live', `Your post is up on ${plural(total, 'channel')}.`],
     partial: ['Published with issues', `${published} of ${total} published · ${failed} failed`],
-    failed: ['Couldn’t publish', 'Nothing went out. Check the errors below and retry.'],
+    failed: ['Publication not confirmed', 'Check each channel’s result before creating another post.'],
   }[state];
 
   const viewPost = () => {
@@ -87,7 +89,7 @@ export default function Publishing() {
         ) : failed ? (
           <View className="flex-row gap-3">
             <Button title="View post" variant="secondary" className="flex-1" onPress={viewPost} />
-            <Button title={`Retry ${failed}`} icon="refresh" className="flex-1" onPress={() => retry(post.id)} />
+            {retryable ? <Button title={`Retry ${retryable}`} icon="refresh" className="flex-1" onPress={() => retry(post.id)} /> : null}
           </View>
         ) : (
           <View className="flex-row gap-3">

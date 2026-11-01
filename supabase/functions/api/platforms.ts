@@ -57,7 +57,7 @@ export function authUrl(platform: Platform, redirect: string, state: string, cha
         response_type: 'code',
         scope: platform === 'facebook'
           ? 'pages_show_list,pages_manage_posts,pages_read_engagement'
-          : 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management',
+          : 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement',
       });
     case 'tiktok':
       return q('https://www.tiktok.com/v2/auth/authorize/', {
@@ -388,11 +388,19 @@ async function instagram(p: Payload, token: string): Promise<Result> {
   const ig = p.igUserId;
   const container = async (body: Record<string, unknown>) => {
     const c = await graph(`${ig}/media`, token, body);
+    if (typeof c.id !== 'string' || !/^\d+$/.test(c.id)) {
+      throw new SafeError('Instagram did not return a media container.', 'INSTAGRAM_CONTAINER_UNCONFIRMED');
+    }
     // Video containers process asynchronously.
     for (let i = 0; i < 60; i++) {
       const s = await metaGet(c.id, token, { fields: 'status_code' });
-      if (s.status_code === 'FINISHED' || !s.status_code) return c.id;
-      if (s.status_code === 'ERROR') throw new Error('Instagram could not process this media.');
+      if (s.status_code === 'FINISHED') return c.id;
+      if (s.status_code !== 'IN_PROGRESS') {
+        throw new SafeError(
+          'Instagram did not confirm that this media is ready. Check Instagram before trying again.',
+          'INSTAGRAM_CONTAINER_UNCONFIRMED',
+        );
+      }
       await sleep(3000);
     }
     throw new Error('Instagram media processing timed out.');
@@ -413,7 +421,9 @@ async function instagram(p: Payload, token: string): Promise<Result> {
     });
   } else creation = await container({ image_url: p.items[0].image_url, caption: p.caption });
   const published = await graph(`${ig}/media_publish`, token, { creation_id: creation });
-  if (p.firstComment) await graph(`${published.id}/comments`, token, { message: p.firstComment }).catch(() => {});
+  if (typeof published.id !== 'string' || !/^\d+$/.test(published.id)) {
+    throw new SafeError('Instagram did not confirm publication. Check the account before retrying.', 'PUBLISH_UNCONFIRMED');
+  }
   const link = await metaGet(published.id, token, { fields: 'permalink' }).catch(() => ({}));
   return { status: 'published', remoteId: published.id, url: link.permalink };
 }

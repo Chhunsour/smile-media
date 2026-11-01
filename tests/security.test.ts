@@ -18,6 +18,7 @@ import {
 import { authorizedPageToken, debugUser, discoverPages, metaJson } from '../supabase/functions/api/meta.ts';
 import { createHandler } from '../supabase/functions/api/server.ts';
 import { authUrl, publish, refresh } from '../supabase/functions/api/platforms.ts';
+import instagramAdapter from '../src/platforms/instagram/index.ts';
 
 const env: Record<string, string> = {
   SUPABASE_URL: 'https://test.supabase.co',
@@ -121,6 +122,64 @@ test('expired credentials without refresh support require reconnect', async () =
     refresh('facebook', { access_token: 'secret', expires_at: '2000-01-01' }),
     (e) => e instanceof SafeError && e.reconnect,
   );
+});
+test('Instagram uses the existing Facebook Login scopes without requesting business or comment access', () => {
+  const url = new URL(authUrl('instagram', 'https://test/callback', 'state', 'challenge'));
+  const scopes = url.searchParams.get('scope')!.split(',').sort();
+  assert.deepEqual(scopes, ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'].sort());
+  assert.deepEqual(instagramAdapter.connection.scopes.toSorted(), scopes);
+  assert(!instagramAdapter.options.some(option => option.key === 'firstComment'));
+});
+test('Instagram rejects invalid media before publishing and strips unsupported routing fields', () => {
+  const page = { external_id: '99', platform: 'instagram' };
+  const image = { image_url: 'https://test.supabase.co/storage/v1/object/sign/media/alice/image.jpg' };
+  const video = { video_url: 'https://test.supabase.co/storage/v1/object/sign/media/alice/video.mp4' };
+  const base = { igUserId: '99', mediaType: 'IMAGE', caption: 'A real caption', items: [image] };
+  for (const changes of [
+    { igUserId: '100' }, { caption: 'x'.repeat(2201) }, { caption: 42 }, { firstComment: 'unsupported' },
+    { mediaType: 'REELS' }, { mediaType: 'CAROUSEL' }, { items: [video] },
+    { items: [image, image] }, { items: [null] }, { items: [{ ...image, ...video }] },
+    { items: [{ image_url: 'https://attacker.test/image.jpg' }] },
+    { mediaType: 'STORIES', items: [image, video] },
+  ]) {
+    assert.throws(() => authorizedPayload(page, { ...base, ...changes }, 'alice', env.SUPABASE_URL), SafeError);
+  }
+  assert.deepEqual(authorizedPayload(page, { ...base, arbitrary: 'discard me' }, 'alice', env.SUPABASE_URL), base);
+  assert.deepEqual(authorizedPayload(page, { ...base, mediaType: 'CAROUSEL', items: [image, video] }, 'alice', env.SUPABASE_URL),
+    { ...base, mediaType: 'CAROUSEL', items: [image, video] });
+});
+test('Instagram requires a ready container and an actual published media ID', async () => {
+  const payload = { igUserId: '99', mediaType: 'IMAGE', caption: 'Test', items: [{ image_url: 'https://media.test/photo.jpg' }] };
+  for (const status of [undefined, 'ERROR', 'EXPIRED', 'PUBLISHED', 'UNKNOWN']) {
+    const calls: string[] = [];
+    await graphMock((url) => {
+      calls.push(url.pathname);
+      return url.pathname.endsWith('/media') ? json({ id: '101' }) : json({ status_code: status });
+    }, async () => {
+      const result = await publish('instagram', payload, 'page-token', '');
+      assert.equal(result.status, 'failed');
+      assert.equal(result.error?.retryable, false);
+      assert.equal(result.error?.code, 'INSTAGRAM_CONTAINER_UNCONFIRMED');
+      assert(!calls.some(path => path.endsWith('/media_publish')));
+    });
+  }
+  for (const published of [{}, { id: '' }, { id: 'not-an-id' }, { id: '202' }]) {
+    await graphMock((url) => {
+      if (url.pathname.endsWith('/media')) return json({ id: '101' });
+      if (url.pathname.endsWith('/101')) return json({ status_code: 'FINISHED' });
+      if (url.pathname.endsWith('/media_publish')) return json(published);
+      assert.equal(url.pathname, '/v23.0/202');
+      return json({ permalink: 'https://www.instagram.com/p/test/' });
+    }, async () => {
+      const result = await publish('instagram', payload, 'page-token', '');
+      assert.equal(result.status, published.id === '202' ? 'published' : 'failed');
+      if (result.status === 'failed') assert.equal(result.error?.code, 'PUBLISH_UNCONFIRMED');
+      else assert.equal(result.remoteId, '202');
+    });
+  }
+  await graphMock(() => json({}), async () => {
+    assert.equal((await publish('instagram', payload, 'page-token', '')).error?.code, 'INSTAGRAM_CONTAINER_UNCONFIRMED');
+  });
 });
 test('multiple Facebook Pages, pagination, tasks and narrowed grants', async () => {
   let calls = 0;
