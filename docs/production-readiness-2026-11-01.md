@@ -1,5 +1,7 @@
 # MultiPostly continuation from 35a0b1e — 1 November 2026
 
+**Superseded candidate:** see [external-users-approval-2026-11-02.md](external-users-approval-2026-11-02.md) for contract security.3, Facebook read/edit/delete, recovery/policy work, current registry evidence and the owner's decision not to accept Beta/AI terms. Observations below describe the earlier security.2 candidate.
+
 **Controlled production publishing rollout: NO-GO today.** Local development, migration rehearsal and preparation of a maintenance-only release can continue. A full hosted recovery rehearsal and real device/OAuth validation are still missing. No push, deployment, credential change, legal acceptance, Meta submission or real social post was performed.
 
 ## Current Meta state and corrected requirements

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://multipostly.app").origin;
+export const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://multipostly-site.vercel.app").origin;
 export const siteDescription = "Create once. Post everywhere. MultiPostly brings cross-platform publishing, scheduling, captions, and insights into one mobile app.";
 export function pageMetadata(title: string, description: string, path = ""): Metadata {
   const url = `${siteUrl}${path}/`;

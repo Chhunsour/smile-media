@@ -73,6 +73,20 @@ create table public.publish_attempts (
   result jsonb, primary key(user_id,post_id,page_id), check(user_id=organization_id)
 );
 alter table public.publish_attempts enable row level security;
+-- Separate immutable operation claims; never rewrite the original publication receipt.
+create table public.post_management_attempts (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  post_id text not null, page_id text not null, request_id uuid not null,
+  operation text not null check(operation in ('edit','delete')),
+  request_hash text not null check(request_hash ~ '^[A-Za-z0-9_-]{43}$'),
+  status text not null check(status in ('started','finished')),
+  started_at timestamptz not null default now(), result jsonb,
+  primary key(user_id,post_id,page_id,request_id), check(user_id=organization_id)
+);
+alter table public.post_management_attempts enable row level security;
+revoke all on public.post_management_attempts from public,anon,authenticated;
+grant all on public.post_management_attempts to service_role;
 create table public.deletion_receipts (code_hash text primary key, completed_at timestamptz not null default now());
 alter table public.deletion_receipts enable row level security;
 
@@ -183,10 +197,36 @@ begin
  update public.publish_attempts set status='finished',result=p_result where user_id=p_user and post_id=p_post and page_id=p_page and status='started';
  update public.posts x set data=jsonb_set(data,'{destinations}',(select jsonb_agg(case when d->>'pageId'=p_page then d||jsonb_build_object('result',p_result,'status',p_result->>'status') else d end order by n) from jsonb_array_elements(data->'destinations') with ordinality z(d,n))),updated_at=now() where id=p_post and user_id=p_user;
 end $$;
+create function public.claim_post_management(p_user uuid,p_post text,p_page text,p_request uuid,p_operation text,p_hash text) returns jsonb language plpgsql security invoker set search_path='' as $$
+declare a public.publish_attempts; m public.post_management_attempts;
+begin
+ perform 1 from public.organizations where id=p_user and deleting_at is null and not exists(select 1 from public.deletion_jobs where user_id=p_user) for update;
+ if not found then raise exception 'Workspace unavailable'; end if;
+ if p_operation not in ('edit','delete') then raise exception 'Invalid operation'; end if;
+ select * into a from public.publish_attempts where user_id=p_user and post_id=p_post and page_id=p_page for update;
+ if not found or a.status<>'finished' or a.result->>'status' is distinct from 'published' then raise exception 'No confirmed publication'; end if;
+ if not exists(select 1 from public.posts where id=p_post and user_id=p_user) or not exists(select 1 from public.social_pages p join public.social_accounts c on c.id=p.account_id where p.id=p_page and p.user_id=p_user and p.platform='facebook' and c.user_id=p_user and c.status='active') then raise exception 'Post or Page unavailable'; end if;
+ select * into m from public.post_management_attempts where user_id=p_user and post_id=p_post and page_id=p_page and request_id=p_request;
+ if found then
+   if m.request_hash<>p_hash or m.operation<>p_operation then raise exception 'Operation request changed'; end if;
+   if m.status='finished' then return jsonb_build_object('cached',m.result); end if;
+   return '{"busy":true}'::jsonb;
+ end if;
+ if exists(select 1 from public.post_management_attempts where user_id=p_user and post_id=p_post and page_id=p_page and (status='started' or (operation='delete' and result->>'success'='true'))) then return '{"busy":true}'::jsonb; end if;
+ insert into public.post_management_attempts(user_id,organization_id,post_id,page_id,request_id,operation,request_hash,status) values(p_user,p_user,p_post,p_page,p_request,p_operation,p_hash,'started');
+ return jsonb_build_object('remoteId',a.result->>'remoteId');
+end $$;
+create function public.finish_post_management(p_user uuid,p_post text,p_page text,p_request uuid,p_result jsonb) returns void language sql security invoker set search_path='' as $$
+ update public.post_management_attempts set status='finished',result=p_result where user_id=p_user and post_id=p_post and page_id=p_page and request_id=p_request and status='started'
+$$;
+revoke all on function public.claim_post_management(uuid,text,text,uuid,text,text),public.finish_post_management(uuid,text,text,uuid,jsonb) from public,anon,authenticated;
+grant execute on function public.claim_post_management(uuid,text,text,uuid,text,text),public.finish_post_management(uuid,text,text,uuid,jsonb) to service_role;
+
 create function public.begin_user_deletion(p_user uuid) returns void language plpgsql security invoker set search_path='' as $$
 begin
  perform 1 from public.organizations where id=p_user for update;
  if exists(select 1 from public.publish_attempts where user_id=p_user and status='started' and started_at>now()-interval '15 minutes') then raise exception 'Publication in progress'; end if;
+ if exists(select 1 from public.post_management_attempts where user_id=p_user and status='started' and started_at>now()-interval '15 minutes') then raise exception 'Post management in progress'; end if;
  update public.organizations set deleting_at=coalesce(deleting_at,now()) where id=p_user;
  delete from public.oauth_states where user_id=p_user;
  delete from public.social_accounts where user_id=p_user;

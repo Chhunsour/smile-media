@@ -115,7 +115,7 @@ try {
   }
   console.log(`Web final-state motion guards: ${webMotion.reduce((sum,item)=>sum+item.wrappers,0)} wrappers in ${webMotion.length} source files.`);
   const executor = await stat(path.join(sourceRoot,'bun.lock')).then(()=> 'bunx').catch(()=> 'npx');
-  await run(executor,['expo','export','-p','web'],temporary);
+  await run(executor,['expo','export','--clear','-p','web'],temporary);
   const dist=path.join(temporary,'dist');
   const shell=await readFile(path.join(patchRoot,'demo-shell.html.txt'),'utf8');
   await patch('dist/index.html',text=>text.replace(/<html([^>]*)>/, '<html$1 class="dark" style="--css-interop-darkMode:class dark">').replace('</head>','<meta name="robots" content="noindex,follow"></head>').replace(/<body([^>]*)>/,`<body$1>${shell}`));

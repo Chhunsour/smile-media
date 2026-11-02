@@ -1,5 +1,5 @@
 {
   "imports": { "@supabase/supabase-js": "jsr:@supabase/supabase-js@2.117.3" },
-  "lock": "../../../deno.lock",
+  "lock": "./deno.lock",
   "fmt": { "singleQuote": true, "lineWidth": 140 }
 }

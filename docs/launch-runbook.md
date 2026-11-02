@@ -1,6 +1,6 @@
 # MultiPostly launch gate — 30 October 2026
 
-Use [production-readiness-2026-11-01.md](production-readiness-2026-11-01.md) for the current rollout proposal. It corrects the retired Access Verification requirement, revises deletion-job recovery, pairs client/API contract `2026-11-01.security.2`, and keeps publishing disabled by default. The sequence, inventory and backup evidence below remain dated historical observations and must not be executed unchanged.
+Use [external-users-approval-2026-11-02.md](external-users-approval-2026-11-02.md) for the current rollout proposal and paired client/API contract `2026-11-01.security.3`. The sequence, inventory and backup evidence below remain dated historical observations and must not be executed unchanged.
 
 **NO-GO for a public production launch.** Local preparation continues from `cf18c74`. The security migration and API in that commit have not been deployed. This run made no production schema, secret, cron, deployment, ownership or verification changes, and published no Facebook posts.
 

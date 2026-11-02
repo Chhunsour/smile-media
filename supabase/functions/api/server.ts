@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { authUrl, type Connected, exchange, type Platform, publish, refresh, type Token } from './platforms.ts';
 import { authorizedPageToken } from './meta.ts';
+import { changeFacebookPost, facebookPostId, readFacebookPost } from './facebook-post.ts';
 import {
   accountKey,
   authorizedPayload,
@@ -56,6 +57,60 @@ export function createHandler(admin: SupabaseClient) {
         controlled ? 'TEST_ACCOUNT_REQUIRED' : 'PUBLISHING_DISABLED', controlled ? 403 : 409);
     }
   };
+  const managementEnabled = (user: string) => Deno.env.get('FACEBOOK_POST_MANAGEMENT') === 'true' && canPublish(user);
+  const requireManagement = (user: string) => {
+    requirePublishing(user);
+    if (!managementEnabled(user)) throw new SafeError('Editing and deleting Facebook posts is unavailable in this release.', 'POST_MANAGEMENT_DISABLED', 409);
+  };
+
+  async function facebookPost(user: string, body: Record<string, unknown>) {
+    const { postId, pageId, operation, requestId } = body;
+    if (typeof postId !== 'string' || typeof pageId !== 'string' || !['read', 'edit', 'delete'].includes(String(operation))) throw new SafeError('Invalid post request.');
+    const message = operation === 'edit' ? body.message : '';
+    if (operation === 'edit' && (typeof message !== 'string' || !message.trim() || message.length > 10000)) throw new SafeError('Enter a caption between 1 and 10,000 characters.');
+    if (operation !== 'read') {
+      requireManagement(user);
+      if (typeof requestId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)) throw new SafeError('Invalid operation request.');
+      if (operation === 'delete' && body.confirm !== 'DELETE_FROM_FACEBOOK') throw new SafeError('Confirm deletion from Facebook.');
+    }
+    const post = must(await admin.from('posts').select('id').eq('id', postId).eq('user_id', user).maybeSingle());
+    const page: DbPage = must(await admin.from('social_pages').select('*').eq('id', pageId).eq('user_id', user).eq('platform', 'facebook').maybeSingle());
+    const attempt = must(await admin.from('publish_attempts').select('status,result').eq('post_id', postId).eq('page_id', pageId).eq('user_id', user).maybeSingle());
+    if (!post || !page || attempt?.status !== 'finished' || attempt.result?.status !== 'published') throw new SafeError('Confirmed Facebook publication not found.', 'NOT_FOUND', 404);
+    const id = facebookPostId(attempt.result.remoteId, page.external_id);
+    const account = must(await admin.from('social_accounts').select('external_id').eq('id', page.account_id).eq('user_id', user).eq('status', 'active').maybeSingle());
+    if (!account) throw new SafeError('Reconnect Facebook to manage this post.', 'RECONNECT_REQUIRED', 400, false, true);
+    const history = must(await admin.from('post_management_attempts').select('status,operation,result').eq('user_id', user).eq('post_id', postId).eq('page_id', pageId)) ?? [];
+    const pending = history.some((item: { status: string }) => item.status === 'started');
+    const deleted = history.some((item: { operation: string; result?: { success?: boolean } }) => item.operation === 'delete' && item.result?.success === true);
+    if (operation === 'read' && deleted) return { state: 'deleted', id, canManage: false };
+    const token = await tokenFor(page, account);
+    if (!token) throw new SafeError('Reconnect Facebook.', 'RECONNECT_REQUIRED', 400, false, true);
+    if (operation === 'read') return { ...await readFacebookPost(id, token), state: pending ? 'uncertain' : 'available', canManage: !pending && managementEnabled(user), requestId: crypto.randomUUID() };
+    const claim = await rpc('claim_post_management', { p_user: user, p_post: postId, p_page: pageId, p_request: requestId, p_operation: operation, p_hash: await hash(JSON.stringify([operation, message])) });
+    if ('cached' in claim) return claim.cached;
+    if (claim.busy) throw new SafeError('A previous change is in progress, uncertain, or this post was already deleted. Check Facebook before making another change.', 'POST_CHANGE_UNCERTAIN', 409);
+    if (claim.remoteId !== id) throw new SafeError('Publication changed. Reload the post.', 'POST_CHANGED', 409);
+    let sent = false;
+    try {
+      requireManagement(user);
+      const active = must(await admin.from('social_accounts').select('id').eq('id', page.account_id).eq('user_id', user).eq('status', 'active').maybeSingle());
+      if (!active) throw new SafeError('This account was disconnected.', 'RECONNECT_REQUIRED', 400, false, true);
+      sent = true;
+      const result = await changeFacebookPost(id, token, operation as 'edit' | 'delete', message as string);
+      await rpc('finish_post_management', { p_user: user, p_post: postId, p_page: pageId, p_request: requestId, p_result: result });
+      return result;
+    } catch (e) {
+      // Only specific authorization/parameter rejections are known failures.
+      // Transient/server errors, transport loss and receipt failures stay locked.
+      if (!sent || (e instanceof SafeError && /^META_(10|100|102|190|200|294)(?:_\d+)?$/.test(e.code))) {
+        await rpc('finish_post_management', { p_user: user, p_post: postId, p_page: pageId, p_request: requestId,
+          p_result: { success: false, operation, error: { ...publicError(e), retryable: false } } });
+        throw e;
+      }
+      throw new SafeError('Facebook may have applied this change. Check the Page before doing anything else.', 'POST_CHANGE_UNCERTAIN', 409);
+    }
+  }
 
   async function saveConnection(user: string, platform: Platform, c: Connected, version: number) {
     const id = accountKey(user, platform, c.externalId);
@@ -247,6 +302,7 @@ export function createHandler(admin: SupabaseClient) {
     return due.length;
   }
   async function ai(body: { kind: string; text: string; tone: string; lang: string; limit: number }) {
+    if (Deno.env.get('AI_ENABLED') !== 'true') throw new SafeError('AI assistance is unavailable in this release.', 'FEATURE_DISABLED', 409);
     if (!['improve', 'translate', 'hashtags', 'shorten'].includes(body.kind) || typeof body.text !== 'string' || body.text.length > 10000) {
       throw new SafeError('Invalid AI request.');
     }
@@ -315,15 +371,18 @@ export function createHandler(admin: SupabaseClient) {
         const completed = Boolean(row) && !pending.length;
         const known = Boolean(row) || pending.length > 0;
         const status = completed ? 'completed' : known ? 'pending' : 'not_found';
-        if (req.headers.get('accept')?.includes('text/html')) {
+        const accepted = (req.headers.get('accept') ?? '').toLowerCase();
+        if (!accepted.includes('application/json') && /text\/(html|plain)/.test(accepted)) {
           const title = completed ? 'Deletion completed' : known ? 'Deletion in progress' : 'Confirmation code not found';
           const description = completed
             ? 'Your MultiPostly account data and uploaded media have been removed. Posts already published to social networks remain on those networks.'
             : known ? 'Your deletion request is recorded. Cleanup is still in progress. You can return to this page to check again.'
             : 'This confirmation code was not found or its status record has expired. This page cannot confirm a deletion for this code.';
-          return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MultiPostly — ${title}</title><style>body{font:18px/1.6 system-ui,sans-serif;max-width:44rem;margin:4rem auto;padding:0 1.5rem;color:#222}code{overflow-wrap:anywhere;font-size:.8em}h1{line-height:1.2}</style><main><p>MultiPostly data deletion</p><h1>${title}</h1><p>${description}</p><p>Confirmation code: <code>${code}</code></p></main></html>`, {
+          // Hosted Supabase rewrites text/html to text/plain without a custom domain.
+          // Return readable text deliberately, rather than exposing raw HTML markup.
+          return new Response(`MultiPostly data deletion\n\n${title}\n\n${description}\n\nConfirmation code: ${code}\n`, {
             status: known ? 200 : 404,
-            headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'" },
+            headers: { ...headers, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'" },
           });
         }
         return reply({ status, ...(completed ? { completedAt: row?.completed_at } : {}) }, known ? 200 : 404);
@@ -414,7 +473,8 @@ export function createHandler(admin: SupabaseClient) {
         throw new SafeError('Sign in again.', 'SESSION_REVOKED', 401);
       }
       switch (body.action) {
-        case 'capabilities': return reply({ schemaVersion: '2026-11-01.security.2', publishingProvider: 'meta-graph-direct' });
+        case 'capabilities': return reply({ schemaVersion: '2026-11-01.security.3', publishingProvider: 'meta-graph-direct' });
+        case 'facebook-post': return reply(await facebookPost(user, body));
         case 'connect': {
           validPlatform(body.platform);
           if (body.platform === 'telegram') {

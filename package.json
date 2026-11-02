@@ -54,6 +54,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "check:policies": "node scripts/check-policy-release.mjs",
+    "export:candidate": "node scripts/export-candidate.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

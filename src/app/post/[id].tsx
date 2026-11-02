@@ -23,6 +23,7 @@ import { canRetryDestination } from '@/lib/publishing-state';
 import { issuesFor, PLATFORMS } from '@/platforms';
 import { duplicatePost, publish, retry, startCompose, useStore } from '@/lib/store';
 import type { Post } from '@/models';
+import { FacebookPost } from '@/components/facebook-post';
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -107,6 +108,9 @@ export default function PostDetail() {
           )}
         </Section>
 
+        {post.destinations.filter(destination => destination.platform === 'facebook' && destination.status === 'published').map(destination =>
+          <FacebookPost key={`${post.id}:${destination.pageId}`} postId={post.id} pageId={destination.pageId} pageName={destination.name} />
+        )}
         <View className="mt-7 flex-row gap-3 px-5">
           {editable ? (
             <Button

@@ -1,0 +1,13 @@
+{
+  "status": "draft",
+  "operatorName": "SMILE MEDIA CO., LTD.",
+  "operatorConfirmed": false,
+  "privacyEmail": "",
+  "supportEmail": "",
+  "effectiveDate": "",
+  "jurisdiction": "",
+  "backupRetention": "",
+  "logRetention": "",
+  "processingLocations": "Supabase primary database: Singapore (ap-southeast-1). Edge Function, hosting/logging and other processor locations and transfer arrangements pending confirmation.",
+  "approvedByOwner": false
+}

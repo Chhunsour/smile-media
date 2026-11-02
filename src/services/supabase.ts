@@ -8,9 +8,10 @@ import 'react-native-url-polyfill/auto';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/app';
 import type { MediaAsset, PublishResult, SocialAccount, User } from '@/models';
 
-import type { Services } from './types';
+import type { FacebookPostResponse, Services } from './types';
 import { sessionStorage } from './session-storage';
 import { restorePost } from './post-state';
+import { completePasswordRecovery, requestPasswordRecovery } from './password-recovery';
 
 /*
  * Live providers backed by Supabase: Auth, Postgres (RLS), Storage and the `api` Edge Function
@@ -34,7 +35,7 @@ async function api<T>(body: Record<string, unknown>): Promise<T> {
 let backendCheck: Promise<void> | undefined;
 async function ensureBackend() {
   backendCheck ??= api<{ schemaVersion: string }>({ action: 'capabilities' }).then(result => {
-    if (result.schemaVersion !== '2026-11-01.security.2') throw new Error('Backend version mismatch.');
+    if (result.schemaVersion !== '2026-11-01.security.3') throw new Error('Backend version mismatch.');
   }).catch(() => {
     backendCheck = undefined;
     throw new Error('MultiPostly could not verify this app version with the service. Check your connection and try again later.');
@@ -81,6 +82,8 @@ const askChannel = () =>
 
 export const supabaseServices: Services = {
   auth: {
+    requestPasswordReset: email => requestPasswordRecovery(supabase.auth, email),
+    resetPassword: (email, code, password) => completePasswordRecovery(supabase.auth, email, code, password),
     async getUser() {
       const { data } = await supabase.auth.getUser();
       return data.user ? toUser(data.user) : null;
@@ -186,6 +189,10 @@ export const supabaseServices: Services = {
   },
 
   publishing: {
+    async facebookPost(postId, pageId, change) {
+      await ensureBackend();
+      return api<FacebookPostResponse>({ action: 'facebook-post', postId, pageId, ...change });
+    },
     async listAccounts() {
       await ensureBackend();
       const accounts = must(await supabase.from('social_accounts').select('*, social_pages(*)').order('connected_at'));

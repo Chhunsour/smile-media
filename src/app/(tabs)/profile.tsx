@@ -8,6 +8,7 @@ import { features } from '@/config/features';
 import { compact } from '@/lib/format';
 import { PLATFORM_ORDER } from '@/platforms';
 import { APP_MODE, APP_NAME } from '@/config/app';
+import { LegalLinks } from '@/components/legal-links';
 import { allPages, deleteAccount, type FailureMode, resetDemo, setSettings, signOut, type ThemePref, toast, useStore } from '@/lib/store';
 
 const THEMES: { value: ThemePref; label: string }[] = [
@@ -155,6 +156,7 @@ export default function Profile() {
         </Group>
       )}
 
+      <LegalLinks />
       <Text variant="caption" tone="subtle" className="mt-10 text-center">
         {APP_NAME} · v1.0{APP_MODE === 'demo' ? ' · Demo mode — nothing leaves this device' : ''}
       </Text>

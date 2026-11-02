@@ -146,7 +146,7 @@ export function FinalCTA() {
 
 const footerLinks: [string, [string, string][]][] = [
   ["Product", [["Features", "/features/"], ["Platforms", "/platforms/"], ["Pricing", "/pricing/"], ["Try in browser", "/app/"]]],
-  ["Resources", [["FAQ", "/faq/"], ["Get the app", "/download/"], ["llms.txt", "/llms.txt"]]],
+  ["Resources", [["FAQ", "/faq/"], ["Support", "/support/"], ["Get the app", "/download/"], ["llms.txt", "/llms.txt"]]],
   ["Legal", [["Privacy", "/privacy/"], ["Data deletion", "/data-deletion/"], ["Terms", "/terms/"]]],
 ];
 export function Footer() {

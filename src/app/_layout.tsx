@@ -77,6 +77,7 @@ export default function RootLayout() {
             </Stack.Protected>
             <Stack.Protected guard={!user}>
               <Stack.Screen name="sign-in" />
+              <Stack.Screen name="recover-password" />
             </Stack.Protected>
           </Stack>
           <Toaster />

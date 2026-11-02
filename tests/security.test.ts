@@ -311,6 +311,34 @@ test('disabled cron still processes housekeeping but never claims due posts', as
     assert(touched.includes('deletion_jobs'));
   } finally { delete env.CRON_SECRET; }
 });
+test('Facebook post mutations require the separate release flag before any data/provider access', async () => {
+  const user = '11111111-1111-4111-8111-111111111111';
+  const jwt = `e30.${b64url(new TextEncoder().encode(JSON.stringify({ session_id: 'session' })))}.test`;
+  env.PUBLISH_MODE = 'controlled'; env.PUBLISH_USER_ALLOWLIST = user;
+  const handler = createHandler({ auth: { getUser: async () => ({ data: { user: { id: user } } }) },
+    rpc: async () => ({ data: true }), from: () => { throw new Error('No table access before release approval'); } } as any);
+  try {
+    for (const operation of ['edit', 'delete']) {
+      const response = await handler(new Request('https://test/api', { method: 'POST', headers: { Authorization: `Bearer ${jwt}` },
+        body: JSON.stringify({ action: 'facebook-post', operation, postId: 'post', pageId: 'page', message: 'New caption' }) }));
+      assert.equal(response.status, 409);
+      assert.equal((await response.json()).error.code, 'POST_MANAGEMENT_DISABLED');
+    }
+  } finally { delete env.PUBLISH_MODE; delete env.PUBLISH_USER_ALLOWLIST; }
+});
+test('live AI requires explicit enablement even when a vendor key is configured', async () => {
+  const jwt = `e30.${b64url(new TextEncoder().encode(JSON.stringify({ session_id: 'session' })))}.test`;
+  env.AI_API_KEY = 'must-not-be-used';
+  const handler = createHandler({ auth: { getUser: async () => ({ data: { user: { id: 'owner' } } }) }, rpc: async () => ({ data: true }) } as any);
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('No AI transmission without enablement'); };
+  try {
+    const response = await handler(new Request('https://test/api', { method: 'POST', headers: { Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ action: 'ai', kind: 'improve', text: 'Private draft', tone: 'friendly' }) }));
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error.code, 'FEATURE_DISABLED');
+  } finally { globalThis.fetch = original; delete env.AI_API_KEY; }
+});
 test('HTTP handler rejects unauthenticated actions, bad methods, missing cron config and invalid state', async () => {
   const handler = createHandler({
     auth: { getUser: async () => ({ data: { user: null }, error: null }) },
@@ -376,6 +404,31 @@ test('invalid/replayed state is consumed once; a failed state insert returns no 
   const body = await res.text();
   assert(!body.includes('authUrl'));
   assert(!body.includes('secret'));
+});
+
+test('OAuth callbacks consume state and cannot exchange a code after session revocation or state expiry', async () => {
+  const original = globalThis.fetch;
+  let exchanges = 0;
+  globalThis.fetch = async () => { exchanges++; throw new Error('No provider exchange for cancelled sessions'); };
+  try {
+    for (const expired of [false, true]) {
+      const state = b64url(crypto.getRandomValues(new Uint8Array(32)));
+      let flow: any = { user_id: 'owner', session_id: 'revoked-session', platform: 'facebook', redirect_uri: 'outpost://oauth/callback',
+        created_at: new Date(Date.now() - (expired ? 660_000 : 0)).toISOString(), connection_version: 0 };
+      const handler = createHandler({ rpc: async () => ({ data: false }), from: () => ({ delete() { return this; }, eq() { return this; }, select() { return this; },
+        maybeSingle: async () => { const data = flow; flow = null; return { data }; } }) } as any);
+      const response = await handler(new Request(`https://test/api/callback?state=${state}&code=private-code`));
+      assert.equal(response.status, expired ? 400 : 302);
+      if (!expired) {
+        const target = new URL(response.headers.get('location')!);
+        assert.equal(target.searchParams.get('state'), state);
+        assert(target.searchParams.has('error'));
+        assert(!target.href.includes('private-code'));
+      }
+      assert.equal((await handler(new Request(`https://test/api/callback?state=${state}&code=private-code`))).status, 400);
+    }
+    assert.equal(exchanges, 0);
+  } finally { globalThis.fetch = original; }
 });
 
 test('asynchronous Facebook media is not reported as published until Graph confirms it', async () => {

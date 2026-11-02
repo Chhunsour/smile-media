@@ -20,18 +20,22 @@ import { signIn, signInWith, signUp } from '@/lib/store';
 import { BRAND, useColors, useScheme } from '@/lib/theme';
 import { PLATFORM_ORDER } from '@/platforms';
 import { services } from '@/services';
+import { router } from 'expo-router';
+import { LegalLinks } from '@/components/legal-links';
 
 export default function SignIn() {
   const c = useColors();
   const scheme = useScheme();
   const insets = useSafeAreaInsets();
-  // Always offered on iOS (App Review expects it next to Google). Expo Go lacks the native module, so it explains instead.
-  const apple = Platform.OS === 'ios' && !!services.auth.signInWith;
+  // Offer only sign-in providers verified/configured for this release. Email remains available.
+  const google = !!services.auth.signInWith && process.env.EXPO_PUBLIC_GOOGLE_SIGN_IN_ENABLED === 'true';
+  const apple = Platform.OS === 'ios' && !!services.auth.signInWith && process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED === 'true';
+  const hasSocial = google || apple;
   const [appleReady, setAppleReady] = useState(false);
   useEffect(() => {
     if (apple) AppleAuthentication.isAvailableAsync().then(setAppleReady, () => setAppleReady(false));
   }, [apple]);
-  const [email, setEmailOpen] = useState(!services.auth.signInWith);
+  const [email, setEmailOpen] = useState(!hasSocial);
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -138,6 +142,7 @@ export default function SignIn() {
                 onSubmitEditing: () => ready && submit(),
               })}
               <Button title={mode === 'in' ? 'Sign in' : 'Create account'} loading={busy} disabled={!ready} onPress={submit} className="mt-1" />
+              {mode === 'in' && services.auth.requestPasswordReset && process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED === 'true' ? <Press accessibilityRole="link" onPress={() => router.push('/recover-password')} className="py-2" hitSlop={8}><Text variant="footnote" tone="accent" className="text-center">Forgot password?</Text></Press> : null}
               <View className="flex-row items-center justify-center gap-1 py-1">
                 <Text variant="footnote" tone="muted">
                   {mode === 'in' ? 'New here?' : 'Have an account?'}
@@ -163,7 +168,7 @@ export default function SignIn() {
                   </Text>
                 </Press>
               ) : null}
-              <Press
+              {google ? <Press
                 accessibilityRole="button"
                 onPress={() => social('google')}
                 className="h-[54px] flex-row items-center justify-center gap-2.5 rounded-full border border-line bg-card">
@@ -171,7 +176,7 @@ export default function SignIn() {
                 <Text variant="callout" className="font-semibold">
                   Continue with Google
                 </Text>
-              </Press>
+              </Press> : null}
               <Press
                 accessibilityRole="button"
                 onPress={() => setEmailOpen(true)}
@@ -190,7 +195,7 @@ export default function SignIn() {
             </Text>
           ) : null}
 
-          {email && services.auth.signInWith ? (
+          {email && hasSocial ? (
             <Press onPress={() => setEmailOpen(false)} className="flex-row items-center justify-center gap-1 py-2" hitSlop={8}>
               <Icon name="chevron-back" size={14} tone="subtle" />
               <Text variant="footnote" tone="subtle" className="font-semibold">
@@ -202,6 +207,7 @@ export default function SignIn() {
               New or returning — one tap signs you in or creates your account.
             </Text>
           )}
+          <LegalLinks />
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>

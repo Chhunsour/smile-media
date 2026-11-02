@@ -81,6 +81,8 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
     assert.equal((await q('select * from public.social_accounts where user_id=$1', [V])).length, 0);
     await assert.rejects(q('select * from public.social_tokens'), /permission denied/);
     await assert.rejects(q('select * from public.oauth_states'), /permission denied/);
+    await assert.rejects(q('select * from public.post_management_attempts'), /permission denied/);
+    await assert.rejects(q('select public.claim_post_management($1,$2,$3,$4,$5,$6)', [U, 'any', 'any', S, 'delete', await hash('request')]), /permission denied/);
     await assert.rejects(q('delete from public.social_accounts'), /permission denied/);
     await assert.rejects(q('select public.save_connection($1,$2,$3,$4)', [V, 'facebook', '9', connection()]), /permission denied/);
     await assert.rejects(
@@ -162,7 +164,12 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
         },
       }),
     };
-    const handler = createHandler(databaseClient(db, auth, storage));
+    let failManagementReceipt = false;
+    const client = databaseClient(db, auth, storage);
+    const handler = createHandler({ ...client, rpc(name: string, args: Record<string, unknown>) {
+      if (name === 'finish_post_management' && failManagementReceipt) return Promise.resolve({ data: null, error: { message: 'receipt unavailable' } });
+      return client.rpc(name, args);
+    } } as any);
     const call = (body: unknown, user = U, session = S) =>
       handler(
         new Request('https://test/api', {
@@ -173,8 +180,11 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
       );
     const capabilities = await call({ action: 'capabilities' });
     assert.equal(capabilities.status, 200);
-    assert.equal((await capabilities.json()).schemaVersion, '2026-11-01.security.2');
+    assert.equal((await capabilities.json()).schemaVersion, '2026-11-01.security.3');
     let graphWrites = 0;
+    let managementWrites = 0, loseManagementResponse = false;
+    let ambiguousManagementResponse: { status: number; body: unknown } | undefined;
+    const remotePosts = new Map(['42_99', '43_99'].map(id => [id, 'Controlled unit test']));
     const original = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
       const url = new URL(String(input));
@@ -208,7 +218,20 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
       }
       if (url.pathname.endsWith('/feed') && init?.method === 'POST') {
         graphWrites++;
-        return new Response(JSON.stringify({ id: `${url.pathname.split('/')[2]}_published` }));
+        return new Response(JSON.stringify({ id: `${url.pathname.split('/')[2]}_99` }));
+      }
+      const remoteId = url.pathname.split('/').at(-1)!;
+      if (['42_99', '43_99'].includes(remoteId)) {
+        if (init?.method === 'POST' || init?.method === 'DELETE') {
+          managementWrites++;
+          if (init.method === 'DELETE') remotePosts.delete(remoteId);
+          else remotePosts.set(remoteId, JSON.parse(String(init.body)).message);
+          if (loseManagementResponse) throw new Error('Simulated lost provider response');
+          if (ambiguousManagementResponse) return Response.json(ambiguousManagementResponse.body, { status: ambiguousManagementResponse.status });
+          return new Response('{"success":true}');
+        }
+        if (!remotePosts.has(remoteId)) return new Response('{"error":{"code":100}}', { status: 400 });
+        return new Response(JSON.stringify({ id: remoteId, message: remotePosts.get(remoteId), permalink_url: `https://www.facebook.com/${remoteId}`, access_token: 'must-never-reach-client' }));
       }
       throw new Error('Unexpected real network call');
     };
@@ -242,6 +265,91 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
       assert.equal((await duplicate.json()).status, 'published');
       assert.equal(graphWrites, 2);
       assert.equal((await call({ action: 'publish', postId: 'handler', pageId: `${U}:facebook:7:42` }, V, T)).status, 404);
+      const management = (operation: string, extra: Record<string, unknown> = {}, page = '42', user = U, session = S) =>
+        call({ action: 'facebook-post', operation, postId: 'handler', pageId: `${U}:facebook:7:${page}`, ...extra }, user, session);
+      const read = await (await management('read')).json();
+      assert.equal(read.message, 'Controlled unit test');
+      assert.equal(read.canManage, false);
+      assert(!JSON.stringify(read).includes('must-never-reach-client'));
+      config.PUBLISH_MODE = 'disabled';
+      assert.equal((await management('read')).status, 200);
+      config.PUBLISH_MODE = 'controlled';
+      assert.equal((await management('edit', { requestId: read.requestId, message: 'Updated' })).status, 409);
+      assert.equal((await q('select count(*) n from public.post_management_attempts'))[0].n, 0);
+      config.FACEBOOK_POST_MANAGEMENT = 'true';
+      assert.equal((await management('read', {}, '42', V, T)).status, 404);
+      assert.equal((await management('edit', { requestId: 'invalid', message: 'Updated' })).status, 400);
+      assert.equal((await management('delete', { requestId: read.requestId })).status, 400);
+      const edit = { requestId: read.requestId, message: 'Updated Page caption', remoteId: '43_99' };
+      assert.equal((await (await management('edit', edit)).json()).success, true);
+      assert.equal(managementWrites, 1);
+      assert.equal(remotePosts.get('42_99'), edit.message);
+      assert.equal(remotePosts.get('43_99'), 'Controlled unit test');
+      assert.equal((await (await management('edit', edit)).json()).success, true);
+      assert.equal(managementWrites, 1);
+      assert.equal((await management('edit', { ...edit, message: 'Changed request' })).status, 500);
+      assert.equal(managementWrites, 1);
+      assert.equal((await (await management('read')).json()).message, edit.message);
+      const next = await (await management('read')).json();
+      const concurrent = await Promise.all([management('edit', { requestId: next.requestId, message: 'Concurrent edit' }), management('edit', { requestId: next.requestId, message: 'Concurrent edit' })]);
+      assert(concurrent.every(response => [200, 409].includes(response.status)));
+      assert.equal(managementWrites, 2);
+      const uncertain = await (await management('read', {}, '43')).json();
+      loseManagementResponse = true;
+      const lost = await management('edit', { requestId: uncertain.requestId, message: 'Applied but response lost' }, '43');
+      assert.equal((await lost.json()).error.code, 'POST_CHANGE_UNCERTAIN');
+      loseManagementResponse = false;
+      assert.equal(remotePosts.get('43_99'), 'Applied but response lost');
+      const observed = await (await management('read', {}, '43')).json();
+      assert.equal(observed.state, 'uncertain');
+      assert.equal(observed.canManage, false);
+      assert.equal((await management('edit', { requestId: uncertain.requestId, message: 'Applied but response lost' }, '43')).status, 409);
+      assert.equal((await management('delete', { requestId: observed.requestId, confirm: 'DELETE_FROM_FACEBOOK' }, '43')).status, 409);
+      assert.equal(managementWrites, 3);
+      await assert.rejects(q('select public.begin_user_deletion($1)', [U]), /Post management in progress/);
+      // Fixture-only operator resolution; no production reset/replay endpoint exists.
+      await q('delete from public.post_management_attempts where user_id=$1 and page_id=$2', [U, `${U}:facebook:7:43`]);
+      const receipt = await (await management('read', {}, '43')).json();
+      failManagementReceipt = true;
+      assert.equal((await management('edit', { requestId: receipt.requestId, message: 'Receipt lost' }, '43')).status, 409);
+      failManagementReceipt = false;
+      assert.equal((await (await management('read', {}, '43')).json()).state, 'uncertain');
+      assert.equal((await management('edit', { requestId: receipt.requestId, message: 'Receipt lost' }, '43')).status, 409);
+      assert.equal(managementWrites, 4);
+      await q('delete from public.post_management_attempts where user_id=$1 and page_id=$2', [U, `${U}:facebook:7:43`]);
+      for (const failure of [{ status: 500, body: {} }, { status: 503, body: { error: { code: 190 } } },
+        { status: 400, body: { error: { code: 2, is_transient: true } } }, { status: 429, body: { error: { code: 4 } } }]) {
+        const before = managementWrites;
+        const snapshot = await (await management('read', {}, '43')).json();
+        ambiguousManagementResponse = failure;
+        const failed = await management('edit', { requestId: snapshot.requestId, message: 'May have applied before error' }, '43');
+        ambiguousManagementResponse = undefined;
+        assert.equal((await failed.json()).error.code, 'POST_CHANGE_UNCERTAIN');
+        assert.equal((await (await management('read', {}, '43')).json()).state, 'uncertain');
+        assert.equal((await management('delete', { requestId: crypto.randomUUID(), confirm: 'DELETE_FROM_FACEBOOK' }, '43')).status, 409);
+        assert.equal(managementWrites, before + 1);
+        // Fixture-only manual reconciliation, never a production retry/reset route.
+        await q('delete from public.post_management_attempts where user_id=$1 and page_id=$2', [U, `${U}:facebook:7:43`]);
+      }
+      const deletion = await (await management('read')).json();
+      const beforeDelete = managementWrites;
+      const deleteRequest = { requestId: deletion.requestId, confirm: 'DELETE_FROM_FACEBOOK' };
+      assert.equal((await (await management('delete', deleteRequest)).json()).success, true);
+      assert.equal((await (await management('delete', deleteRequest)).json()).success, true);
+      assert.equal(managementWrites, beforeDelete + 1);
+      assert.equal((await (await management('read')).json()).state, 'deleted');
+      const ledger = (await q('select result from public.publish_attempts where user_id=$1 and post_id=$2 and page_id=$3', [U, 'handler', `${U}:facebook:7:42`]))[0];
+      assert.equal(ledger.result.remoteId, '42_99');
+      assert.equal(ledger.result.status, 'published');
+      assert.equal((await q('select data from public.posts where id=$1', ['handler']))[0].data.payloads[`${U}:facebook:7:42`].message, 'Controlled unit test');
+      const beforeStaleCallback = await q('select id,sealed from public.social_tokens where user_id=$1 order by id', [U]);
+      const staleStart = await (await call({ action: 'connect', platform: 'facebook', redirectUri: 'outpost://oauth/callback' })).json();
+      await q('update public.organizations set connection_version=connection_version+1 where id=$1', [U]);
+      const staleCallback = await handler(new Request(`https://test/api/callback?state=${staleStart.state}&code=valid-code`));
+      assert.equal(staleCallback.status, 302);
+      assert(new URL(staleCallback.headers.get('location')!).searchParams.has('error'));
+      assert.deepEqual(await q('select id,sealed from public.social_tokens where user_id=$1 order by id', [U]), beforeStaleCallback);
+      assert.equal((await handler(new Request(`https://test/api/callback?state=${staleStart.state}&code=valid-code`))).status, 400);
       // App account deletion uses the authenticated user; a supplied victim user ID has no effect.
       const badDelete = await call({ action: 'delete-user', userId: V });
       assert.equal(badDelete.status, 400);
@@ -364,7 +472,7 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
     assert.equal((await q('select count(*) n from public.deletion_jobs where user_id=$1', [D]))[0].n, 1);
     assert.equal((await (await handler(new Request(response.url))).json()).status, 'pending');
     const page = await handler(new Request(response.url, { headers: { Accept: 'text/html' } }));
-    assert.match(page.headers.get('content-type')!, /text\/html/);
+    assert.match(page.headers.get('content-type')!, /text\/plain/);
     assert.match(await page.text(), /Deletion in progress/);
     const cron = () => handler(new Request('https://test/api', {
       method: 'POST', headers: { 'x-cron-secret': 'receipt-test' }, body: '{"action":"cron"}',
@@ -377,6 +485,11 @@ test('PostgreSQL migration, RLS, atomic saves, duplicate publishing and deletion
     assert.equal((await (await handler(new Request(response.url))).json()).status, 'completed');
     const completedPage = await handler(new Request(response.url, { headers: { Accept: 'text/html' } }));
     assert.match(await completedPage.text(), /Deletion completed/);
+    const plainPage = await handler(new Request(response.url, { headers: { Accept: 'text/plain' } }));
+    assert.doesNotMatch(await plainPage.text(), /<!doctype|<html|<main/i);
+    const jsonPage = await handler(new Request(response.url, { headers: { Accept: 'application/json, text/plain, */*' } }));
+    assert.match(jsonPage.headers.get('content-type')!, /application\/json/);
+    assert.equal((await jsonPage.json()).status, 'completed');
     const unknown = await handler(new Request(`https://test/api/deletion-status?code=${'0'.repeat(64)}`, { headers: { Accept: 'text/html' } }));
     assert.equal(unknown.status, 404);
     assert.match(await unknown.text(), /not found/);

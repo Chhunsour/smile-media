@@ -17,6 +17,8 @@ export interface AuthProvider {
   /** Social sign-in. Resolve null if the user cancels. Leave out to hide the buttons. */
   signInWith?(provider: 'apple' | 'google'): Promise<User | null>;
   signOut(): Promise<void>;
+  requestPasswordReset?(email: string): Promise<void>;
+  resetPassword?(email: string, code: string, password: string): Promise<{ sessionsRevoked: boolean }>;
   deleteAccount?(): Promise<void>;
 }
 
@@ -71,6 +73,8 @@ export type PublishRequest = {
 };
 
 export interface PublishingProvider {
+  /** Only confirmed Facebook Page publications made by this app, never arbitrary remote IDs. */
+  facebookPost?(postId: string, pageId: string, request: FacebookPostRequest): Promise<FacebookPostResponse>;
   /** Connected logins and the pages/profiles/channels under them. */
   listAccounts(): Promise<SocialAccount[]>;
   /** Run the platform's connect flow (OAuth or bot setup). Resolve null if the user cancels. */
@@ -82,6 +86,12 @@ export interface PublishingProvider {
    */
   publish(request: PublishRequest, onProgress?: (progress: number) => void): Promise<PublishResult>;
 }
+
+export type FacebookPostRequest = { operation: 'read' } | { operation: 'edit'; requestId: string; message: string } |
+  { operation: 'delete'; requestId: string; confirm: 'DELETE_FROM_FACEBOOK' };
+export type FacebookPostResponse = {
+  state: 'available' | 'deleted' | 'uncertain'; id: string; message?: string; createdAt?: string; url?: string; canManage: boolean; requestId?: string;
+} | { success: boolean; operation: 'edit' | 'delete'; remoteId?: string; completedAt?: string; error?: { message: string } };
 
 export interface SchedulingProvider {
   /** Ask your scheduler to publish this post at post.scheduledAt. */

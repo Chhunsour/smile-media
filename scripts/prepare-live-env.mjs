@@ -13,7 +13,7 @@ try {
  const key=keys.find(k=>k.type==='publishable'&&k.api_key?.startsWith('sb_publishable_'))?.api_key;
  if(!key)throw new Error('No publishable key found');
  await writeFile(resolve(dir,'mobile.env'),`EXPO_PUBLIC_APP_MODE=live\nEXPO_PUBLIC_APP_NAME=MultiPostly\nEXPO_PUBLIC_SUPABASE_URL=https://pdecqyjanliqocfigkvd.supabase.co\nEXPO_PUBLIC_SUPABASE_ANON_KEY=${key}\n`,{mode:0o600,flag:'wx'});
- await writeFile(resolve(dir,'server-additions.env'),`# Retain the existing TOKEN_ENCRYPTION_KEY. Initial provisioning, if needed, is a separate approved action.\nPUBLIC_API_URL=https://pdecqyjanliqocfigkvd.supabase.co/functions/v1/api\nOAUTH_REDIRECT_ALLOWLIST=outpost://oauth/callback,multipostly://oauth/callback\nWEB_ORIGIN_ALLOWLIST=\nMAINTENANCE_MODE=true\nPUBLISH_MODE=disabled\nPUBLISH_USER_ALLOWLIST=\n`,{mode:0o600,flag:'wx'});
+ await writeFile(resolve(dir,'server-additions.env'),`# Retain the existing TOKEN_ENCRYPTION_KEY. Initial provisioning, if needed, is a separate approved action.\nPUBLIC_API_URL=https://pdecqyjanliqocfigkvd.supabase.co/functions/v1/api\nOAUTH_REDIRECT_ALLOWLIST=outpost://oauth/callback,multipostly://oauth/callback\nWEB_ORIGIN_ALLOWLIST=\nMAINTENANCE_MODE=true\nPUBLISH_MODE=disabled\nPUBLISH_USER_ALLOWLIST=\nFACEBOOK_POST_MANAGEMENT=false\n`,{mode:0o600,flag:'wx'});
  console.log('Prepared private mobile.env and server-additions.env. Retain the existing token-encryption key; no replacement was generated. Existing Meta/cron secrets were not read, changed or rotated. Candidate values were not printed.');
 } catch {
  console.error('Environment preparation stopped. Use a new private work directory and verify CLI access. No credential values were printed.');process.exitCode=1;
