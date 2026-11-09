@@ -1,6 +1,7 @@
 import { readFile, writeFile, access } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
 
 // Local artifacts only. Explicit mode/public config and a cold cache prevent a
 // prior demo transform from being mistaken for a live candidate (or vice versa).
@@ -15,6 +16,7 @@ try {
   let exists = false;
   try { await access(output); exists = true; } catch { /* New output required. */ }
   if (exists) throw new Error('Choose a new output directory; previous evidence is preserved.');
+  createRequire(import.meta.url)('../patches/query-string.cjs').verifyInstallation(process.cwd(), true);
   const environment = { ...process.env };
   for (const key of Object.keys(environment)) if (key.startsWith('EXPO_PUBLIC_')) delete environment[key];
   if (configFile) {

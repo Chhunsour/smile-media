@@ -1,13 +1,13 @@
 {
-  "status": "draft",
+  "status": "approved",
   "operatorName": "SMILE MEDIA CO., LTD.",
-  "operatorConfirmed": false,
-  "privacyEmail": "",
-  "supportEmail": "",
-  "effectiveDate": "",
-  "jurisdiction": "",
-  "backupRetention": "",
-  "logRetention": "",
-  "processingLocations": "Supabase primary database: Singapore (ap-southeast-1). Edge Function, hosting/logging and other processor locations and transfer arrangements pending confirmation.",
-  "approvedByOwner": false
+  "operatorConfirmed": true,
+  "privacyEmail": "support@smilemedia.tv",
+  "supportEmail": "support@smilemedia.tv",
+  "effectiveDate": "2026-11-09",
+  "jurisdiction": "the Kingdom of Cambodia",
+  "backupRetention": "we do not keep automatic database backups; encrypted manual backups taken before major maintenance are kept for up to 30 days and then deleted",
+  "logRetention": "server and hosting logs are kept for up to 7 days",
+  "processingLocations": "the database and uploaded media are stored by Supabase in Singapore; backend functions run on Supabase's global edge network; the website is served by Vercel's global network; support email is forwarded by Cloudflare to Google Gmail; and content you choose to publish is sent to Meta (Facebook and Instagram)",
+  "approvedByOwner": true
 }

@@ -34,14 +34,14 @@ async function walk(directory) {
 let keep = process.env.KEEP_EXPO_WEB_TEMP === '1';
 try {
   console.log('Copying the existing Expo app into an isolated temporary workspace.');
-  for (const name of ['src','assets','package.json','package-lock.json','babel.config.js','metro.config.js','tailwind.config.js','tsconfig.json']) {
+  for (const name of ['src','assets','patches','package.json','package-lock.json','babel.config.js','metro.config.js','tailwind.config.js','tsconfig.json']) {
     await cp(path.join(sourceRoot,name),path.join(temporary,name),{recursive:true});
   }
   const sourceConfig=JSON.parse(await readFile(path.join(sourceRoot,'app.json'),'utf8')).expo;
   const config={expo:{name:sourceConfig.name,slug:sourceConfig.slug,version:sourceConfig.version,icon:sourceConfig.icon,scheme:'multipostly',orientation:sourceConfig.orientation,userInterfaceStyle:'dark',web:{...sourceConfig.web,output:'single'},plugins:['expo-router'],experiments:{...sourceConfig.experiments,baseUrl:'/app'}}};
   await writeFile(path.join(temporary,'app.json'),JSON.stringify(config,null,2));
   const lock = await readFile(path.join(temporary,'package-lock.json'));
-  const hash = createHash('sha256').update(lock).digest('hex').slice(0,16);
+  const hash = createHash('sha256').update(lock).update(await readFile(path.join(temporary,'patches/query-string.cjs'))).digest('hex').slice(0,16);
   let dependencies;
   if (process.env.EXPO_WEB_NODE_MODULES) {
     dependencies=path.resolve(process.env.EXPO_WEB_NODE_MODULES);
@@ -56,12 +56,14 @@ try {
     try { installed=(await stat(path.join(cache,'.installed'))).isFile(); } catch {}
     if(!installed) {
       await cp(path.join(temporary,'package.json'),path.join(cache,'package.json'));
+      await cp(path.join(temporary,'patches'),path.join(cache,'patches'),{recursive:true});
       await writeFile(path.join(cache,'package-lock.json'),lock);
       await run('npm',['ci','--no-audit','--no-fund'],cache);
       await writeFile(path.join(cache,'.installed'),hash);
     }
   }
   await symlink(dependencies,path.join(temporary,'node_modules'),'dir');
+  await run(process.execPath,['patches/query-string.cjs','--check'],temporary);
   await patch('metro.config.js',text => text.replace('module.exports = withNativeWind',`const config = getDefaultConfig(__dirname);\nconfig.watchFolders = [...(config.watchFolders || []), ${JSON.stringify(dependencies)}];\nconfig.resolver.nodeModulesPaths = [${JSON.stringify(dependencies)}];\nmodule.exports = withNativeWind`).replace('withNativeWind(getDefaultConfig(__dirname),','withNativeWind(config,'));
   await patch('tailwind.config.js',text => /\bdarkMode\s*:/.test(text) ? text : text.replace('module.exports = {',"module.exports = {\n  darkMode: 'class',"));
   // Delivered demo identities are fictional. Source files in the repository stay unchanged.

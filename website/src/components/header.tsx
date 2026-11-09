@@ -20,7 +20,7 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
   const current = (href: string) => path.replace(/\/$/, "") === href.replace(/\/$/, "");
-  return <header className={`sticky top-0 z-50 transition-[background,border-color,box-shadow] duration-300 ${scrolled || open ? "border-b border-line bg-canvas" : "border-b border-transparent"}`}>
+  return <header className={`sticky top-0 z-50 transition-[background,border-color,box-shadow] duration-300 motion-reduce:transition-none ${scrolled || open ? "border-b border-line bg-canvas" : "border-b border-transparent"}`}>
     <span aria-hidden="true" className="scroll-progress bg-brand absolute inset-x-0 -bottom-px h-[2px]" />
     <div className="wrap flex h-[68px] items-center gap-8">
       <Link prefetch={false} href="/" onClick={() => setOpen(false)} aria-label="MultiPostly home" className="flex items-center gap-2.5 font-display text-[17px] font-semibold tracking-[-.03em]">
