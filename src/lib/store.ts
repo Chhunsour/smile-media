@@ -324,7 +324,7 @@ export async function publish(postId: string, only?: string[]) {
   try {
     saved = await store(postId);
   } catch (e) {
-    ids.forEach((id) => fail(id, `Upload failed: ${message(e)}`, true));
+    ids.forEach((id) => fail(id, new Error(`Upload failed: ${message(e)}`), true));
   }
 
   if (get().user?.id !== owner) return;

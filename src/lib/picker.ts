@@ -8,6 +8,7 @@ const toMedia = (a: ImagePicker.ImagePickerAsset): Media => ({
   uri: a.uri,
   type: a.type === 'video' ? 'video' : 'image',
   duration: a.duration ? a.duration / 1000 : undefined,
+  mimeType: a.mimeType,
 });
 
 /** System photo picker or camera. Resolves to [] when cancelled, denied or unavailable. */

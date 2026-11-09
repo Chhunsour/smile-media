@@ -55,12 +55,19 @@ const must = <T>({ data, error }: { data: T; error: { message: string } | null }
   return data;
 };
 
+// Storage rejects a missing content type (415), and the picker doesn't always report one.
+const MIME: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic',
+  heif: 'image/heif', mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime',
+};
+
 async function uploadFile(uri: string, userId: string, name: string, mimeType?: string) {
   if (/^https?:/.test(uri)) return uri;
   const body = await (await fetch(uri)).arrayBuffer();
   const ext = uri.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg';
   const path = `${userId}/${name.replace(/[^\w-]/g, '_')}.${ext}`;
-  must(await supabase.storage.from('media').upload(path, body, { contentType: mimeType, upsert: true }));
+  const contentType = mimeType || MIME[ext] || 'application/octet-stream';
+  must(await supabase.storage.from('media').upload(path, body, { contentType, upsert: true }));
   const signed = must(await supabase.storage.from('media').createSignedUrl(path, 3600));
   if (!signed) throw new Error('Media download URL could not be created.');
   return signed.signedUrl;
