@@ -14,7 +14,7 @@ module.exports = ({ config }) => {
   }
   return {
     ...config,
-    plugins: [...(config.plugins || []), ['expo-dev-client', { launchMode: 'launcher' }]],
+    plugins: [...(config.plugins || []), ['expo-dev-client', { launchMode: 'launcher' }], './plugins/quote-bundle-script', './plugins/ios-scene-lifecycle'],
     android: { ...config.android, package: process.env.MULTIPOSTLY_ANDROID_PACKAGE || config.ios.bundleIdentifier },
   };
 };
